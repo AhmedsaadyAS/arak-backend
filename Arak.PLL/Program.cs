@@ -19,7 +19,7 @@ namespace Arak.PLL
 			builder.Services.AddControllers();
 
 			builder.Services.AddDbContext<AppDbContext>(op =>
-op.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+			op.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 			builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 			builder.Services.AddScoped<IStudentRepository, StudentRepository>();

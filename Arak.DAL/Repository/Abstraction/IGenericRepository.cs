@@ -10,7 +10,7 @@ namespace Arak.DAL.Repository.Abstraction
 	{
 		Task<IEnumerable<T>> GetAllAsync();
 		Task<T> GetByIdAsync(int id);
-		Task CreateAsync(T entity);
+		Task<T> CreateAsync(T entity);
 		void Update(T entity);
 		void Delete(T entity);
 	}

@@ -1,6 +1,7 @@
 ﻿using Arak.DAL.Database;
 using Arak.DAL.Entities;
 using Arak.DAL.Repository.Abstraction;
+//using Arak.BLL.DTO;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -24,5 +25,17 @@ namespace Arak.DAL.Repository.Implementation
             var students = await _context.Students.Where(x => x.Name == name).ToListAsync();
 			return students;	
         }
+
+		public async Task<ICollection<Student>> GetByEmailAsync(string email)
+		{
+			var students = await _context.Students.Where(x => x.Email == email).ToListAsync();
+			return students;
+		}
+
+		public async Task<ICollection<Student>> GetStudentByClassId(int classId)
+		{
+			var students = await _context.Students.Where(x=>x.ClassId == classId).ToListAsync();
+			return students;
+		}
 	}
 }

@@ -38,5 +38,20 @@ namespace Arak.BLL.Service.Implementation
 		{
 			return await _studentRepository.GetByNameAsync(name);
 		}
+
+		public async Task<Student> CreateAsync(Student student) 
+		{
+			return await _studentRepository.CreateAsync(student);
+		}
+
+		public async Task<ICollection<Student>> GetByEmailAsync(string email)
+		{
+			return await _studentRepository.GetByEmailAsync(email);
+		}
+
+		public async Task<ICollection<Student>> GetStudentByClassId(int classId)
+		{
+			return await _studentRepository.GetStudentByClassId(classId);
+		}
 	}
 }
