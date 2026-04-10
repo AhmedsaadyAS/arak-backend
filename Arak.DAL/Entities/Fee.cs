@@ -1,6 +1,6 @@
 ﻿namespace Arak.DAL.Entities
 {
-    public class GradeLevel
+    public class Fee
     {
         public int Id { get; set; }
     }

@@ -1,4 +1,7 @@
 
+using Arak.DAL.Database;
+using Microsoft.EntityFrameworkCore;
+
 namespace Arak.PLL
 {
 	public class Program
@@ -10,6 +13,8 @@ namespace Arak.PLL
 			// Add services to the container.
 
 			builder.Services.AddControllers();
+			builder.Services.AddDbContext<AppDbContext>(op =>
+op.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 			//add Swagger UI Service
 			builder.Services.AddEndpointsApiExplorer();

@@ -1,18 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Arak.DAL.Entities
 {
-	public class Teacher
-	{
-		public int Id { get; set; }
+    public class Teacher : ApplicationUser
+    {
+        public int Id { get; set; }
 
-		public string UserId { get; set; }   // ⭐ FK
-		public ApplicationUser User { get; set; }
+        [ForeignKey("Subject")]
+        public int? SubjectId { get; set; }
+        public Subject Subject { get; set; }
 
-		public ICollection<TeacherSubject> TeacherSubjects { get; set; } = new List<TeacherSubject>();
-	}
+        [ForeignKey("TimeTable")]
+        public int? TimeTableId { get; set; }
+        public TimeTable TimeTable { get; set; }
+
+        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+        public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
+        public ICollection<TeacherClass> Classes { get; set; } = new List<TeacherClass>();
+        public ICollection<TeacherSemester> Semesters { get; set; } = new List<TeacherSemester>();
+
+    }
 }

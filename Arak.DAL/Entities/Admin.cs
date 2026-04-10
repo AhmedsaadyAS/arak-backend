@@ -1,6 +1,6 @@
 ﻿namespace Arak.DAL.Entities
 {
-    public class GradeLevel
+    public class Admin : ApplicationUser
     {
         public int Id { get; set; }
     }
