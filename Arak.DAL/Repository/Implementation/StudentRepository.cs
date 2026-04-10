@@ -18,5 +18,11 @@ namespace Arak.DAL.Repository.Implementation
 			var students = await _context.Students.Where(x => x.Status == status).ToListAsync();
 			return students;
 		}
+
+		public async Task<ICollection<Student>> GetByNameAsync(string name)
+		{
+            var students = await _context.Students.Where(x => x.Name == name).ToListAsync();
+			return students;	
+        }
 	}
 }

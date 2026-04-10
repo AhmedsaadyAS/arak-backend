@@ -10,7 +10,12 @@ namespace Arak.BLL.Service.Abstraction
 	public interface IStudentService
 	{
 		Task<IEnumerable<Student>> GetAllStudentsAsync();
+
 		Task<Student> GetStudentByIdAsync(int id);
+
 		Task<ICollection<Student>> GetByStatusAsync(bool status);
-	}
+
+		Task<ICollection<Student>> GetByNameAsync(string name);
+
+    }
 }

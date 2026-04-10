@@ -1,4 +1,5 @@
 ﻿using Arak.BLL.Service.Abstraction;
+using Arak.DAL.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,5 +34,15 @@ namespace ARAK.PLL.Controllers
 			}
 			return Ok(students);
 		}
+
+		[HttpGet("SearchStudentsByName/{name}")]
+		public async Task<IActionResult> GetByNameAsync(string name)
+		{
+			var students = await _studentService.GetByNameAsync(name);
+			if (students == null) {	
+				return NotFound($"The Status {name} is invalid");
+            }
+            return Ok(students);
+        }
 	}
 }

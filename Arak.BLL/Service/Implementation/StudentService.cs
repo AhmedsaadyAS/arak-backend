@@ -33,5 +33,10 @@ namespace Arak.BLL.Service.Implementation
 		{
 			return await _studentRepository.GetByStatusAsync(status);
 		}
+
+		public async Task<ICollection<Student>> GetByNameAsync(string name)
+		{
+			return await _studentRepository.GetByNameAsync(name);
+		}
 	}
 }
