@@ -9,5 +9,6 @@ namespace Arak.DAL.Repository.Abstraction
 {
 	public interface IStudentRepository : IGenericRepository<Student>
 	{
+		Task<ICollection<Student>> GetByStatusAsync(bool status);
 	}
 }

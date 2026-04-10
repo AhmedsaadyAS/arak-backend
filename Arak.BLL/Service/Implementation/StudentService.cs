@@ -2,6 +2,7 @@
 using Arak.DAL.Entities;
 using Arak.DAL.Repository.Abstraction;
 using Arak.DAL.Repository.Implementation;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,11 @@ namespace Arak.BLL.Service.Implementation
 		public async Task<Student> GetStudentByIdAsync(int id)
 		{
 			return await _studentRepository.GetByIdAsync(id);
+		}
+
+		public async Task<ICollection<Student>> GetByStatusAsync(bool status)
+		{
+			return await _studentRepository.GetByStatusAsync(status);
 		}
 	}
 }

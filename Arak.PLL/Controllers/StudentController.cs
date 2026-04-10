@@ -22,5 +22,16 @@ namespace ARAK.PLL.Controllers
             var allStudents = await _studentService.GetAllStudentsAsync();
 			return Ok(allStudents);
         }
-    }
+
+		[HttpGet("{status}")]
+		public async Task<IActionResult> GetStudentsByStatus(bool status)
+		{
+			var students = await _studentService.GetByStatusAsync(status);
+			if (students == null)
+			{
+				return NotFound($"The Status {status} is invalid");
+			}
+			return Ok(students);
+		}
+	}
 }

@@ -11,5 +11,6 @@ namespace Arak.BLL.Service.Abstraction
 	{
 		Task<IEnumerable<Student>> GetAllStudentsAsync();
 		Task<Student> GetStudentByIdAsync(int id);
+		Task<ICollection<Student>> GetByStatusAsync(bool status);
 	}
 }
