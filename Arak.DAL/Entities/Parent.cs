@@ -3,14 +3,11 @@ using System.Text.Json.Serialization;
 
 namespace Arak.DAL.Entities
 {
-    public class Parent : ApplicationUser
+    public class Parent 
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Address { get; set; }
-
-        [JsonIgnore]
+		public int ParentId { get; set; }
+		[JsonIgnore]
         public ICollection<Student> Students { get; set; } = new List<Student>();
-
-    }
+		public ApplicationUser ApplicationUser { get; set; }
+	}
 }

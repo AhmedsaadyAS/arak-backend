@@ -1,7 +1,8 @@
 ﻿namespace Arak.DAL.Entities
 {
-    public class Admin : ApplicationUser
+    public class Admin 
     {
-        public int Id { get; set; }
-    }
+        public int AdminId { get; set; }
+		public ApplicationUser ApplicationUser { get; set; }
+	}
 }

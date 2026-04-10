@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Arak.DAL.Database
 {
-    public class AppDbContext : DbContext
-    {
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
+	{
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
 
@@ -13,15 +13,17 @@ namespace Arak.DAL.Database
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            //chatGPT solution for cycles or multiple cascade paths. 
-            /*modelBuilder.Entity<TimeTable>()
+			base.OnModelCreating(modelBuilder);
+
+			//chatGPT solution for cycles or multiple cascade paths. 
+			/*modelBuilder.Entity<TimeTable>()
             .HasOne(t => t.Teacher)
             .WithMany()
             .HasForeignKey(t => t.TeacherId)
             .OnDelete(DeleteBehavior.NoAction);*/ // 👈 الحل هنا
 
-            //Mohammady solution for cycles or multiple cascade paths. 
-            foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+			//Mohammady solution for cycles or multiple cascade paths. 
+			foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
@@ -35,7 +37,8 @@ namespace Arak.DAL.Database
         public DbSet<Admin> Admins { get; set; }
         public DbSet<Assignment> Assignments { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
-        public DbSet<Class> Classes { get; set; }
+		public DbSet<ApplicationUser> ApplicationUsers { get; set; }
+		public DbSet<Class> Classes { get; set; }
         public DbSet<Gender> Genders { get; set; }
         public DbSet<Grade> Grades { get; set; }
         public DbSet<Parent> Parents { get; set; }
