@@ -1,5 +1,9 @@
 
+using Arak.BLL.Service.Abstraction;
+using Arak.BLL.Service.Implementation;
 using Arak.DAL.Database;
+using Arak.DAL.Repository.Abstraction;
+using Arak.DAL.Repository.Implementation;
 using Microsoft.EntityFrameworkCore;
 
 namespace Arak.PLL
@@ -13,8 +17,13 @@ namespace Arak.PLL
 			// Add services to the container.
 
 			builder.Services.AddControllers();
+
 			builder.Services.AddDbContext<AppDbContext>(op =>
 op.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+			builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+			builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+
 
 			//add Swagger UI Service
 			builder.Services.AddEndpointsApiExplorer();
