@@ -28,6 +28,10 @@ namespace Arak.DAL.Database
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
 
+            modelBuilder.Entity<TimeTable>()
+            .Property(e => e.DayOfWeek)
+            .HasConversion<string>();
+
             modelBuilder.Entity<Gender>().HasData(
                 new Gender { Id = 1, Name = "Male" },
                 new Gender { Id = 2, Name = "Female" }

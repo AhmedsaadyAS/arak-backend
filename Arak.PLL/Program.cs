@@ -21,9 +21,16 @@ namespace Arak.PLL
 			builder.Services.AddDbContext<AppDbContext>(op =>
 			op.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+			//Repositories
 			builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 			builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+			builder.Services.AddScoped<ITimetableRepository,TimetableRepository>();
+
+
+			//Services
 			builder.Services.AddScoped<IStudentService, StudentService>();
+			builder.Services.AddScoped<ITimetableService, TimetableService>();
+
 
 			//add Swagger UI Service
 			builder.Services.AddEndpointsApiExplorer();
