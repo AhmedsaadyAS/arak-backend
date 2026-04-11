@@ -53,5 +53,17 @@ namespace Arak.BLL.Service.Implementation
 		{
 			return await _studentRepository.GetStudentByClassId(classId);
 		}
-	}
+
+		public async Task<Student> UpdateAsync(Student student)
+		{
+			return await _studentRepository.UpdateAsync(student);
+		}
+
+		public async Task<bool> DeleteAsync(int Id)
+		{
+
+			var result = await _studentRepository.DeleteAsync(Id);
+			return result;
+		}
+    }
 }

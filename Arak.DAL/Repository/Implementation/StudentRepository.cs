@@ -37,5 +37,7 @@ namespace Arak.DAL.Repository.Implementation
 			var students = await _context.Students.Where(x=>x.ClassId == classId).ToListAsync();
 			return students;
 		}
+
+
 	}
 }

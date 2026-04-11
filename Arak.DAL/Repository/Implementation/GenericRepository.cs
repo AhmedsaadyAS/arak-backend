@@ -31,12 +31,33 @@ namespace Arak.DAL.Repository.Implementation
 			return entity;
         }
 
-		public virtual void Update(T entity)
-		{ 
-			//_context.Set<T>().SingleOrDefaultAsync(x=>x.Id = entity.Id).Update(entity);
-		}
+		public virtual async Task<T> UpdateAsync(T entity)
+		{
+            var entry = _context.Entry(entity);
 
-		public virtual void Delete(T entity)
-			=> _context.Set<T>().Remove(entity);
-	}
+            if (entry.State == EntityState.Detached)
+            {
+                _context.Set<T>().Attach(entity);
+            }
+
+            entry.State = EntityState.Modified;
+
+           await _context.SaveChangesAsync();
+			return entity;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+
+            var entity = await _context.Set<T>().FindAsync(id);
+
+            if (entity == null)
+                return false;
+
+            _context.Set<T>().Remove(entity);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+    }
 }

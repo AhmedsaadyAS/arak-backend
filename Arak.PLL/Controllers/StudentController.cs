@@ -41,7 +41,7 @@ namespace ARAK.PLL.Controllers
 		{
 			var students = await _studentService.GetByNameAsync(name);
 			if (students.Any() == false) {	
-				return NotFound($"The Status {name} is invalid!");
+				return NotFound($"The Name {name} is invalid!");
             }
             return Ok(students);
         }
@@ -73,6 +73,29 @@ namespace ARAK.PLL.Controllers
 		{
 			var Std = await _studentService.CreateAsync(student);
 			return Ok(student);
+		}
+
+		[HttpPut]
+		public async Task<IActionResult> UpdateAsync(int Id,Student student)
+		{
+			if (Id != student.Id)
+			{
+				return NotFound($"The Id {Id} is invalid!");
+            }
+			var Std = await _studentService.UpdateAsync(student);
+			return Ok(student);
+		}
+
+		[HttpDelete]
+		public async Task<IActionResult> DeleteAsync(int Id)
+		{
+			var result = await _studentService.DeleteAsync(Id);
+			if (!result)
+			{
+				return NotFound($"The Id {Id} is invalid!");
+			}
+
+			return Ok("Student had been deleted successfully!");
 		}
 	}
 }

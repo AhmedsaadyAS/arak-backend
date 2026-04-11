@@ -11,7 +11,8 @@ namespace Arak.DAL.Repository.Abstraction
 		Task<IEnumerable<T>> GetAllAsync();
 		Task<T> GetByIdAsync(int id);
 		Task<T> CreateAsync(T entity);
-		void Update(T entity);
-		void Delete(T entity);
-	}
+		Task<T> UpdateAsync(T entity);
+		Task<bool> DeleteAsync(int id);
+
+    }
 }
