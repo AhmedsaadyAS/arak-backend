@@ -25,6 +25,19 @@ namespace ARAK.PLL.Controllers
 			return Ok(allStudents);
         }
 
+		[HttpGet("SearchStudentsById/{Id}")]
+		public async Task<IActionResult> GetStudentByIdAsync(int Id)
+		{
+			var student = await _studentService.GetStudentsByIdAsync(Id);
+			if (student == null)
+			{
+				return NotFound($"The Id {Id} is invalid!");
+			}
+
+			return Ok(student);
+
+        }
+
 		[HttpGet("{status}")]
 		public async Task<IActionResult> GetStudentsByStatus(bool status)
 		{
@@ -64,6 +77,17 @@ namespace ARAK.PLL.Controllers
             if (students.Any() == false)
             {
                 return NotFound($"The ClassId {classId} is invalid!");
+            }
+            return Ok(students);
+        }
+
+        [HttpGet("CatchStudentsByParentId/{parentId}")]
+        public async Task<IActionResult> GetStudentByParentId(int parentId)
+        {
+			var students = await _studentService.GetStudentByParentId(parentId);
+            if (students.Any() == false)
+            {
+                return NotFound($"The ParentId {parentId} is invalid!");
             }
             return Ok(students);
         }

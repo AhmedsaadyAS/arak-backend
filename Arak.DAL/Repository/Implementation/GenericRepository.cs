@@ -21,8 +21,10 @@ namespace Arak.DAL.Repository.Implementation
 		public virtual async Task<IEnumerable<T>> GetAllAsync()
 			=> await _context.Set<T>().ToListAsync();
 
-		public virtual async Task<T> GetByIdAsync(int id)
-			=> await _context.Set<T>().FindAsync(id);
+        public virtual async Task<T> GetByIdAsync(int id)
+        {
+            return await _context.Set<T>().FindAsync(id);
+        }
 
 		public virtual async Task<T> CreateAsync(T entity)
 		{ 

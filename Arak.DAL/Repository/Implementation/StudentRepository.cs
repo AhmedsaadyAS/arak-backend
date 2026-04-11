@@ -38,6 +38,11 @@ namespace Arak.DAL.Repository.Implementation
 			return students;
 		}
 
+        public async Task<ICollection<Student>> GetStudentByParentId(int parentId)
+        {
+            var students = await _context.Students.Where(x => x.ParentId == parentId).ToListAsync();
+            return students;
+        }
 
-	}
+    }
 }

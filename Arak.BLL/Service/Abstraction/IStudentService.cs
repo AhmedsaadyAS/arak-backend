@@ -13,11 +13,13 @@ namespace Arak.BLL.Service.Abstraction
 		Task<ICollection<Student>> GetByNameAsync(string name);
 		Task<ICollection<Student>> GetByEmailAsync(string email);
 		Task<ICollection<Student>> GetStudentByClassId(int classId);
-		Task<ICollection<Student>> GetByStatusAsync(bool status);
-		Task<Student> GetStudentByIdAsync(int id);
+		Task<ICollection<Student>> GetStudentByParentId(int parentId);
+        Task<ICollection<Student>> GetByStatusAsync(bool status);
+		Task<Student> GetStudentsByIdAsync(int id);
 
 
-		Task<Student> CreateAsync(Student student);
+
+        Task<Student> CreateAsync(Student student);
 
 		Task<Student> UpdateAsync(Student student);
 

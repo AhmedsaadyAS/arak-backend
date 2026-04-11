@@ -24,8 +24,9 @@ namespace Arak.BLL.Service.Implementation
 			return await _studentRepository.GetAllAsync();
 		}
 
-		public async Task<Student> GetStudentByIdAsync(int id)
+		public async Task<Student> GetStudentsByIdAsync(int id)
 		{
+
 			return await _studentRepository.GetByIdAsync(id);
 		}
 
@@ -52,6 +53,11 @@ namespace Arak.BLL.Service.Implementation
 		public async Task<ICollection<Student>> GetStudentByClassId(int classId)
 		{
 			return await _studentRepository.GetStudentByClassId(classId);
+		}
+
+		public async Task<ICollection<Student>> GetStudentByParentId(int parentId)
+		{
+			return await _studentRepository.GetStudentByParentId(parentId);
 		}
 
 		public async Task<Student> UpdateAsync(Student student)

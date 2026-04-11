@@ -16,5 +16,7 @@ namespace Arak.DAL.Repository.Abstraction
         Task<ICollection<Student>> GetByEmailAsync(string email);
 
         Task<ICollection<Student>> GetStudentByClassId(int classId);
+
+        Task<ICollection<Student>> GetStudentByParentId(int parentId);
     }
 }
