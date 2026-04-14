@@ -1,4 +1,4 @@
-﻿using Arak.DAL.Database;
+using Arak.DAL.Database;
 using Arak.DAL.Entities;
 using Arak.DAL.Repository.Abstraction;
 //using Arak.BLL.DTO;
@@ -14,7 +14,7 @@ namespace Arak.DAL.Repository.Implementation
 	public class StudentRepository : GenericRepository<Student>, IStudentRepository
 	{
 		public StudentRepository(AppDbContext context) : base(context) { }
-		public async Task<ICollection<Student>> GetByStatusAsync(bool status)
+		public async Task<ICollection<Student>> GetByStatusAsync(string status)
 		{
 			var students = await _context.Students.Where(x => x.Status == status).ToListAsync();
 			return students;
@@ -44,5 +44,48 @@ namespace Arak.DAL.Repository.Implementation
             return students;
         }
 
+        public async Task<(IEnumerable<Student> Students, int Total)> GetPagedAsync(
+            int   page,
+            int   pageSize,
+            string? search,
+            string? grade,
+            string? status,
+            int?    classId)
+        {
+            var query = _context.Students.AsQueryable();
+
+            // --- Filtering ---
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search;
+                // SQL Server default collation is case-insensitive, no .ToLower() needed
+                query = query.Where(x =>
+                    x.Name.Contains(s)        ||
+                    x.Email.Contains(s)       ||
+                    x.StudentCode.Contains(s) ||
+                    (x.PhoneNumber != null && x.PhoneNumber.Contains(s)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(grade) && grade != "All")
+                query = query.Where(x => x.Grade == grade);
+
+            if (!string.IsNullOrWhiteSpace(status) && status != "All")
+                query = query.Where(x => x.Status == status);
+
+            if (classId.HasValue)
+                query = query.Where(x => x.ClassId == classId.Value);
+
+            // --- Total before paging ---
+            var total = await query.CountAsync();
+
+            // --- Paging ---
+            var students = await query
+                .OrderBy(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (students, total);
+        }
     }
 }

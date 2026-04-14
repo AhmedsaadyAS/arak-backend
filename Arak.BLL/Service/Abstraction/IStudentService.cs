@@ -1,4 +1,4 @@
-﻿using Arak.DAL.Entities;
+using Arak.DAL.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +14,10 @@ namespace Arak.BLL.Service.Abstraction
 		Task<ICollection<Student>> GetByEmailAsync(string email);
 		Task<ICollection<Student>> GetStudentByClassId(int classId);
 		Task<ICollection<Student>> GetStudentByParentId(int parentId);
-        Task<ICollection<Student>> GetByStatusAsync(bool status);
+        Task<ICollection<Student>> GetByStatusAsync(string status);
 		Task<Student> GetStudentsByIdAsync(int id);
-
-
+        Task<(IEnumerable<Student> Students, int Total)> GetPagedAsync(
+            int page, int pageSize, string? search, string? grade, string? status, int? classId);
 
         Task<Student> CreateAsync(Student student);
 

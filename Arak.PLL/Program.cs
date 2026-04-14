@@ -19,8 +19,17 @@ namespace Arak.PLL
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // ── 1. Controllers ────────────────────────────────────────────────
-            builder.Services.AddControllers();
+            // ── 1. Controllers (with JSON cycle protection) ───────────────────
+            builder.Services.AddControllers()
+                .AddJsonOptions(opts =>
+                {
+                    // Prevents infinite loops when EF navigation props are loaded.
+                    // System.Text.Json will ignore already-serialised object references.
+                    opts.JsonSerializerOptions.ReferenceHandler =
+                        System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+                    opts.JsonSerializerOptions.DefaultIgnoreCondition =
+                        System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+                });
 
             // ── 2. Database ───────────────────────────────────────────────────
             builder.Services.AddDbContext<AppDbContext>(op =>
@@ -48,11 +57,14 @@ namespace Arak.PLL
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins(
-                            "http://localhost:5173",  // Vite dev server
-                            "http://localhost:3000")  // Arak Admin Dashboard
+                    // Read origins from configuration for flexibility
+                    var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                                  ?? new[] { "http://localhost:5173" };
+
+                    policy.WithOrigins(origins)
                           .AllowAnyHeader()
-                          .AllowAnyMethod();
+                          .AllowAnyMethod()
+                          .AllowCredentials();
                 });
             });
 
@@ -126,13 +138,21 @@ namespace Arak.PLL
             builder.Services.AddScoped<IStudentService, StudentService>();
             builder.Services.AddScoped<ITimetableService, TimetableService>();
             builder.Services.AddScoped<IAuthService, AuthService>();   // ← NEW
+            builder.Services.AddScoped<IClassService, ClassService>();
+            builder.Services.AddScoped<IParentService, ParentService>();
+            builder.Services.AddScoped<ITeacherService, TeacherService>();
+            builder.Services.AddScoped<ISubjectService, SubjectService>();
+            builder.Services.AddScoped<IEventService, EventService>();
+            builder.Services.AddScoped<IFeeService, FeeService>();
+            builder.Services.AddScoped<ITaskService, TaskService>();
+            builder.Services.AddScoped<IEvaluationService, EvaluationService>();
 
             // ══════════════════════════════════════════════════════════════════
             var app = builder.Build();
             // ══════════════════════════════════════════════════════════════════
 
-            // ── Step 4: Seed test admin user on startup ───────────────────────
-            await SeedAdminUserAsync(app);
+            // ── Step 4: Seed Database ─────────────────────────────────────────
+            await Arak.DAL.Database.DbInitializer.InitializeAsync(app.Services);
 
             // ── Swagger (dev only) ────────────────────────────────────────────
             if (app.Environment.IsDevelopment())
@@ -143,71 +163,31 @@ namespace Arak.PLL
 
             // ── Pipeline order (CRITICAL — do NOT reorder!) ───────────────────
             app.UseCors("AllowFrontend");       // 1. CORS — before auth
-            app.UseAuthentication();             // 2. Validate JWT
-            app.UseAuthorization();              // 3. Enforce [Authorize]
+            app.UseHttpsRedirection();           // 2. Force HTTPS
+            app.UseExceptionHandler("/error");   // 3. Global error handler
+            app.UseAuthentication();             // 4. Validate JWT
+            app.UseAuthorization();              // 5. Enforce [Authorize]
+
+            // ── Fallback error endpoint for exception handler ─────────────────
+            app.Map("/error", (HttpContext context) =>
+            {
+                var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+                var statusCode = exception switch
+                {
+                    UnauthorizedAccessException => 401,
+                    InvalidOperationException => 400,
+                    KeyNotFoundException => 404,
+                    _ => 500
+                };
+                return Results.Problem(
+                    title: "An error occurred",
+                    detail: app.Environment.IsDevelopment() ? exception?.Message : null,
+                    statusCode: statusCode);
+            });
 
             app.MapControllers();
 
             app.Run();
-        }
-
-        /// <summary>
-        /// Seeds a default admin user and the standard role set on first run.
-        /// Roles match the exact strings the frontend RBAC expects (BACKEND.md §1 + §13).
-        /// </summary>
-        private static async Task SeedAdminUserAsync(WebApplication app)
-        {
-            using var scope = app.Services.CreateScope();
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-            // ── Seed all roles the frontend RBAC checks against ───────────────
-            // Do NOT rename these — the frontend does exact string comparison.
-            var roles = new[]
-            {
-                "Super Admin",
-                "Admin",
-                "Academic Admin",
-                "Teacher",
-                "Fees Admin",
-                "Users Admin",
-                "Parent"
-            };
-
-            foreach (var roleName in roles)
-            {
-                if (!await roleManager.RoleExistsAsync(roleName))
-                    await roleManager.CreateAsync(new IdentityRole(roleName));
-            }
-
-            // ── Seed default admin user ───────────────────────────────────────
-            const string adminEmail    = "admin@arak.com";
-            const string adminPassword = "Admin@123";
-
-            var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
-            if (existingAdmin is null)
-            {
-                var adminUser = new ApplicationUser
-                {
-                    UserName       = adminEmail,
-                    Email          = adminEmail,
-                    EmailConfirmed = true,
-                    Name           = "Admin User",
-                    Address        = "Arak School HQ"
-                };
-
-                var createResult = await userManager.CreateAsync(adminUser, adminPassword);
-                if (createResult.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
-                }
-                else
-                {
-                    // Log errors to console for DevOps visibility
-                    foreach (var error in createResult.Errors)
-                        Console.WriteLine($"[Seed Error] {error.Code}: {error.Description}");
-                }
-            }
         }
     }
 }

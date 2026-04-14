@@ -10,29 +10,26 @@ using System.Threading.Tasks;
 
 namespace Arak.DAL.Repository.Implementation
 {
-    public class TimetableRepository : GenericRepository<TimeTable> ,ITimetableRepository
+    public class TimetableRepository : GenericRepository<TimeTable>, ITimetableRepository
     {
         public TimetableRepository(AppDbContext context) : base(context) { }
 
-        public async Task<ICollection<TimeTable>> GetTimetableByClassId(int classId)
+        public async Task<ICollection<TimeTable>> GetTimetableByClassIdAsync(int classId)
         {
-            var timetables = await _context.TimeTables.Where(x => x.ClassId == classId).ToListAsync();
-            return timetables;
+            return await _context.TimeTables
+                .Include(t => t.Subject)
+                .Include(t => t.Semester)
+                .Where(x => x.ClassId == classId)
+                .ToListAsync();
         }
 
-        public async Task<ICollection<TimeTable>> GetTimetableByTeacherId(int teacherId)
+        public async Task<ICollection<TimeTable>> GetTimetableByTeacherIdAsync(int teacherId)
         {
-            var timetables = await _context.TimeTables.Where(x => x.TeacherId == teacherId).ToListAsync();
-            return timetables;
-        }
-
-        public async Task<ICollection<TimeTable>> GetTimetableInStudent(int TimeClassId)
-        {
-            //var StdclsId = await _context.Students.Where(n => n.ClassId == StudentClassId).ToListAsync();
-
-            var timetables = await _context.TimeTables.Where(x => x.ClassId == TimeClassId).ToListAsync();
-            return timetables;
-            
+            return await _context.TimeTables
+                .Include(t => t.Subject)
+                .Include(t => t.Semester)
+                .Where(x => x.TeacherId == teacherId)
+                .ToListAsync();
         }
     }
 }

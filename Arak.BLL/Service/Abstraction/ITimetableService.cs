@@ -1,4 +1,4 @@
-﻿using Arak.DAL.Entities;
+using Arak.DAL.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +9,11 @@ namespace Arak.BLL.Service.Abstraction
 {
     public interface ITimetableService
     {
+        Task<IEnumerable<TimeTable>> GetAllAsync();
+        Task<TimeTable?> GetByIdAsync(int id);
         Task<TimeTable> AddLesson(TimeTable timeTable);
         Task<ICollection<TimeTable>> GetTimetableByClassId(int classId);
-        Task<ICollection<TimeTable>> GetTimetableByTeacherId(int classId);
-        Task<ICollection<TimeTable>> GetTimetableInStudent(int TimeClassId);
+        Task<ICollection<TimeTable>> GetTimetableByTeacherId(int teacherId);
         Task<TimeTable> UpdateAsync(TimeTable timeTable);
         Task<bool> DeleteAsync(int Id);
     }

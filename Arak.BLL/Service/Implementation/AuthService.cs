@@ -41,7 +41,13 @@ namespace Arak.BLL.Service.Implementation
 
             // 3. Get the user's roles (returns list — we take the first/highest)
             var roles = await _userManager.GetRolesAsync(user);
-            var primaryRole = roles.FirstOrDefault() ?? "Admin";
+            if (roles.Count == 0)
+            {
+                // Security: A user with no roles should not gain admin privileges by default.
+                // Return null to trigger a 401 — admin must assign a role first.
+                return null;
+            }
+            var primaryRole = roles.First();
 
             // 4. Build JWT claims
             //    BACKEND.md §1 Critical Notice: role claim must be the string NAME
@@ -55,7 +61,12 @@ namespace Arak.BLL.Service.Implementation
             };
 
             // 5. Read JWT settings from appsettings.json
-            var key            = _configuration["Jwt:Key"]!;
+            var key = _configuration["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(key) || key.Length < 32)
+            {
+                // JWT signing key must be at least 256 bits (32 bytes) for HMAC-SHA256
+                throw new InvalidOperationException("Jwt:Key configuration is missing or too short (minimum 32 characters).");
+            }
             var issuer         = _configuration["Jwt:Issuer"]!;
             var audience       = _configuration["Jwt:Audience"]!;
             var expirationHours = int.TryParse(_configuration["Jwt:ExpirationHours"], out var h) ? h : 24;

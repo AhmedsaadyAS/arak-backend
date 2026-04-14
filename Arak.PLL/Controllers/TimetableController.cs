@@ -1,13 +1,13 @@
 ﻿using Arak.BLL.Service.Abstraction;
-using Arak.BLL.Service.Implementation;
 using Arak.DAL.Entities;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Arak.PLL.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
     public class TimetableController : ControllerBase
     {
         private readonly ITimetableService _timetableService;
@@ -16,13 +16,22 @@ namespace Arak.PLL.Controllers
             _timetableService = timetableService;
         }
 
+        [HttpGet("{id:int}", Name = "GetTimetableById")]
+        public async Task<IActionResult> GetByIdAsync(int id)
+        {
+            var entity = await _timetableService.GetByIdAsync(id);
+            if (entity == null)
+                return NotFound(new { message = $"Schedule slot {id} not found." });
+            return Ok(entity);
+        }
+
         [HttpGet("GetTimetablesByClassId/{classId}")]
         public async Task<IActionResult> GetTimetableByClassId(int classId)
         {
             var timetables = await _timetableService.GetTimetableByClassId(classId);
-            if (timetables.Any() == false)
+            if (!timetables.Any())
             {
-                return NotFound($"The ClassId {classId} is invalid!");
+                return NotFound(new { message = $"No timetable found for class {classId}." });
             }
 
             return Ok(timetables);
@@ -34,52 +43,40 @@ namespace Arak.PLL.Controllers
             var timetables = await _timetableService.GetTimetableByTeacherId(teacherId);
             if (timetables.Any() == false)
             {
-                return NotFound($"The TeacherId {teacherId} is invalid!");
+                return NotFound(new { message = $"No timetable found for teacher {teacherId}." });
             }
 
             return Ok(timetables);
         }
 
-        [HttpGet("GetTimetableInStudent/{StudentClassId}")]
-        public async Task<IActionResult> GetTimetableInStudent(int TimeClassId, int StudentClassId)
-        {
-            var timetable = await _timetableService.GetTimetableByClassId(TimeClassId);
-            if (timetable.Any() == true && TimeClassId == StudentClassId)
-            {
-                return Ok(timetable);
-            }
-
-            return NotFound("There is a problem!");
-        }
-
         [HttpPost]
-        public async Task<IActionResult> AddLesson(TimeTable timeTable)
+        public async Task<IActionResult> AddLesson([FromBody] TimeTable timeTable)
         {
-            await _timetableService.AddLesson(timeTable);
-            return Ok(timeTable);
+            var created = await _timetableService.AddLesson(timeTable);
+            return CreatedAtRoute("GetTimetableById", new { id = created.Id }, created);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> UpdateAsync(int Id, TimeTable timeTable)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateAsync(int id, TimeTable timeTable)
         {
-            if (Id != timeTable.Id)
+            if (id != timeTable.Id)
             {
-                return NotFound($"The Id {Id} is invalid!");
+                return BadRequest(new { message = "ID mismatch." });
             }
-            var Std = await _timetableService.UpdateAsync(timeTable);
-            return Ok(timeTable);
+            var updated = await _timetableService.UpdateAsync(timeTable);
+            return Ok(updated);
         }
 
-        [HttpDelete]
-        public async Task<IActionResult> DeleteAsync(int Id)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteAsync(int id)
         {
-            var result = await _timetableService.DeleteAsync(Id);
+            var result = await _timetableService.DeleteAsync(id);
             if (!result)
             {
-                return NotFound($"The Id {Id} is invalid!");
+                return NotFound(new { message = $"Schedule slot with ID {id} not found." });
             }
 
-            return Ok("Lesson had been deleted successfully!");
+            return Ok(new { message = "Lesson deleted." });
         }
     }
 }

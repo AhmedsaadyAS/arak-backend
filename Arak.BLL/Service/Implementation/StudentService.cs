@@ -1,4 +1,4 @@
-﻿using Arak.BLL.Service.Abstraction;
+using Arak.BLL.Service.Abstraction;
 using Arak.DAL.Entities;
 using Arak.DAL.Repository.Abstraction;
 using Arak.DAL.Repository.Implementation;
@@ -30,7 +30,7 @@ namespace Arak.BLL.Service.Implementation
 			return await _studentRepository.GetByIdAsync(id);
 		}
 
-		public async Task<ICollection<Student>> GetByStatusAsync(bool status)
+		public async Task<ICollection<Student>> GetByStatusAsync(string status)
 		{
 			return await _studentRepository.GetByStatusAsync(status);
 		}
@@ -40,9 +40,11 @@ namespace Arak.BLL.Service.Implementation
 			return await _studentRepository.GetByNameAsync(name);
 		}
 
-		public async Task<Student> CreateAsync(Student student) 
+		public async Task<Student> CreateAsync(Student student)
 		{
-			return await _studentRepository.CreateAsync(student);
+			var created = await _studentRepository.CreateAsync(student);
+			await _studentRepository.SaveChangesAsync();
+			return created;
 		}
 
 		public async Task<ICollection<Student>> GetByEmailAsync(string email)
@@ -60,15 +62,23 @@ namespace Arak.BLL.Service.Implementation
 			return await _studentRepository.GetStudentByParentId(parentId);
 		}
 
-		public async Task<Student> UpdateAsync(Student student)
+		public async Task<(IEnumerable<Student> Students, int Total)> GetPagedAsync(
+            int page, int pageSize, string? search, string? grade, string? status, int? classId)
+        {
+            return await _studentRepository.GetPagedAsync(page, pageSize, search, grade, status, classId);
+        }
+
+        public async Task<Student> UpdateAsync(Student student)
 		{
-			return await _studentRepository.UpdateAsync(student);
+			var updated = await _studentRepository.UpdateAsync(student);
+			await _studentRepository.SaveChangesAsync();
+			return updated;
 		}
 
 		public async Task<bool> DeleteAsync(int Id)
 		{
-
 			var result = await _studentRepository.DeleteAsync(Id);
+			if (result) await _studentRepository.SaveChangesAsync();
 			return result;
 		}
     }

@@ -9,8 +9,7 @@ namespace Arak.DAL.Repository.Abstraction
 {
     public interface ITimetableRepository : IGenericRepository<TimeTable>
     {
-        Task<ICollection<TimeTable>> GetTimetableByClassId(int classId);
-        Task<ICollection<TimeTable>> GetTimetableByTeacherId(int teacherId);
-        Task<ICollection<TimeTable>> GetTimetableInStudent(int TimeClassId);
+        Task<ICollection<TimeTable>> GetTimetableByClassIdAsync(int classId);
+        Task<ICollection<TimeTable>> GetTimetableByTeacherIdAsync(int teacherId);
     }
 }

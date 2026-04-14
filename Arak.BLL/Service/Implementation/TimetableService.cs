@@ -1,4 +1,4 @@
-﻿using Arak.BLL.Service.Abstraction;
+using Arak.BLL.Service.Abstraction;
 using Arak.DAL.Entities;
 using Arak.DAL.Repository.Abstraction;
 using Arak.DAL.Repository.Implementation;
@@ -18,35 +18,36 @@ namespace Arak.BLL.Service.Implementation
             _timetableRepository = timetableRepository;
         }
 
+        public async Task<IEnumerable<TimeTable>> GetAllAsync() => await _timetableRepository.GetAllAsync();
+        public async Task<TimeTable> GetByIdAsync(int id) => await _timetableRepository.GetByIdAsync(id);
+
         public async Task<ICollection<TimeTable>> GetTimetableByClassId(int classId)
         {
-            return await _timetableRepository.GetTimetableByClassId(classId);
+            return await _timetableRepository.GetTimetableByClassIdAsync(classId);
         }
 
-        public async Task<ICollection<TimeTable>> GetTimetableByTeacherId(int classId)
+        public async Task<ICollection<TimeTable>> GetTimetableByTeacherId(int teacherId)
         {
-            return await _timetableRepository.GetTimetableByTeacherId(classId);
-        }
-
-        public async Task<ICollection<TimeTable>> GetTimetableInStudent(int TimeClassId)
-        {
-            return await _timetableRepository.GetTimetableInStudent(TimeClassId);
+            return await _timetableRepository.GetTimetableByTeacherIdAsync(teacherId);
         }
         public async Task<TimeTable> AddLesson(TimeTable timeTable)
         {
-
-          return  await _timetableRepository.CreateAsync(timeTable);
+            var created = await _timetableRepository.CreateAsync(timeTable);
+            await _timetableRepository.SaveChangesAsync();
+            return created;
         }
 
         public async Task<TimeTable> UpdateAsync(TimeTable timeTable)
         {
-            return await _timetableRepository.UpdateAsync(timeTable);
+            var updated = await _timetableRepository.UpdateAsync(timeTable);
+            await _timetableRepository.SaveChangesAsync();
+            return updated;
         }
 
         public async Task<bool> DeleteAsync(int Id)
         {
-
             var result = await _timetableRepository.DeleteAsync(Id);
+            if (result) await _timetableRepository.SaveChangesAsync();
             return result;
         }
     }

@@ -19,19 +19,19 @@ namespace Arak.DAL.Entities
         public int StudentId { get; set; }
 
         [JsonIgnore]
-        public Student Student { get; set; } = null!;
+        public Student? Student { get; set; }
 
         [ForeignKey("Class")]
         public int ClassId { get; set; }
 
         [JsonIgnore]
-        public Class Class { get; set; } = null!;
+        public Class? Class { get; set; }
 
         [ForeignKey("Subject")]
         public int SubjectId { get; set; }
 
         [JsonIgnore]
-        public Subject Subject { get; set; } = null!;
+        public Subject? Subject { get; set; }
 
         /// <summary>
         /// The assessment/exam type. E.g. "Month1", "Month2", "Final", "Oral", "Practical", "Research"

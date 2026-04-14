@@ -21,20 +21,21 @@ namespace Arak.DAL.Repository.Implementation
 		public virtual async Task<IEnumerable<T>> GetAllAsync()
 			=> await _context.Set<T>().ToListAsync();
 
-        public virtual async Task<T> GetByIdAsync(int id)
+        public virtual async Task<T?> GetByIdAsync(int id)
         {
             return await _context.Set<T>().FindAsync(id);
         }
 
 		public virtual async Task<T> CreateAsync(T entity)
-		{ 
+		{
+			ArgumentNullException.ThrowIfNull(entity, nameof(entity));
 			await _context.Set<T>().AddAsync(entity);
-			await _context.SaveChangesAsync();
 			return entity;
         }
 
 		public virtual async Task<T> UpdateAsync(T entity)
 		{
+            ArgumentNullException.ThrowIfNull(entity, nameof(entity));
             var entry = _context.Entry(entity);
 
             if (entry.State == EntityState.Detached)
@@ -43,23 +44,27 @@ namespace Arak.DAL.Repository.Implementation
             }
 
             entry.State = EntityState.Modified;
-
-           await _context.SaveChangesAsync();
 			return entity;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-
             var entity = await _context.Set<T>().FindAsync(id);
 
             if (entity == null)
                 return false;
 
             _context.Set<T>().Remove(entity);
-            await _context.SaveChangesAsync();
-
             return true;
+        }
+
+        /// <summary>
+        /// Persists all pending changes to the database.
+        /// Call this after CreateAsync/UpdateAsync/DeleteAsync to commit.
+        /// </summary>
+        public async Task<int> SaveChangesAsync()
+        {
+            return await _context.SaveChangesAsync();
         }
     }
 }
