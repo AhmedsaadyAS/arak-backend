@@ -35,6 +35,7 @@
 - **.NET 9 SDK** ([Download](https://dotnet.microsoft.com/download/dotnet/9.0))
 - **SQL Server** 2019+ (Express, Developer, or Standard edition)
 - **Git**
+- **EF Core CLI Tool** - Install globally: `dotnet tool install --global dotnet-ef`
 
 ### 1-Minute Setup
 

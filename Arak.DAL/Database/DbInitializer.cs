@@ -46,7 +46,14 @@ namespace Arak.DAL.Database
                 const string academicEmail = "academic@arak.com";
                 if (await userManager.FindByEmailAsync(academicEmail) == null)
                 {
-                    await CreateUser(userManager, roleManager, academicEmail, "Academic Admin", "Academic Admin");
+                    var academicUser = new ApplicationUser
+                    {
+                        UserName = academicEmail, Email = academicEmail, EmailConfirmed = true,
+                        Name = "Academic Admin", Address = "Arak School HQ"
+                    };
+                    var academicPassword = Environment.GetEnvironmentVariable("ARAK_DEFAULT_PASSWORD") ?? "Academic@123";
+                    var createResult = await userManager.CreateAsync(academicUser, academicPassword);
+                    if (createResult.Succeeded) await userManager.AddToRoleAsync(academicUser, "Academic Admin");
                 }
 
                 // 3. Dummy Lookup Data (Classes, Subjects)

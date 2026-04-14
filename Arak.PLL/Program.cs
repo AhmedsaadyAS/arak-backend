@@ -163,7 +163,8 @@ namespace Arak.PLL
 
             // ── Pipeline order (CRITICAL — do NOT reorder!) ───────────────────
             app.UseCors("AllowFrontend");       // 1. CORS — before auth
-            app.UseHttpsRedirection();           // 2. Force HTTPS
+            if (!app.Environment.IsDevelopment())
+                app.UseHttpsRedirection();       // 2. Force HTTPS (production only)
             app.UseExceptionHandler("/error");   // 3. Global error handler
             app.UseAuthentication();             // 4. Validate JWT
             app.UseAuthorization();              // 5. Enforce [Authorize]
