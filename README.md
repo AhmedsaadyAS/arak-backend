@@ -435,7 +435,7 @@ dotnet ef migrations script --output migrations.sql
 | `401 Unauthorized` | Missing or invalid JWT | Token expired/missing |
 | `403 Forbidden` | Insufficient role/permission | User role not allowed |
 | `404 Not Found` | Resource doesn't exist | ID not in database |
-| `409 Conflict` | Delete blocked by dependencies | Cannot delete teacher with classes |
+| `409 Conflict` | Delete blocked by FK dependency | entity is referenced by active records |
 | `500 Internal Server Error` | Unexpected server error | Database connection failed |
 
 ### Query Parameters
@@ -704,11 +704,26 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 | No JWT refresh token | 🟡 Planned | Hard 24h logout (possible data loss with unsaved forms) |
 | Chat feature | 🟡 Not Started | 0% implemented (needs SignalR) |
 | Attendance controller | 🟠 Stub | Returns empty list (service not implemented) |
+| Parent-Student circular dependency | ✅ Resolved | Frontend validation locks removed; ParentId is nullable |
+| Delete 500 crash on FK violations | ✅ Resolved | Global 409 middleware added in Program.cs |
+| Subject delete crashes linked Teachers | ✅ Resolved | SubjectService now unlinks teachers before deletion |
+| Classes guard missing Teachers check | ✅ Resolved | ClassesController now checks both Students and Teachers |
+| Schedule POST 400 error (room vs Location) | ✅ Resolved | LessonForm.jsx now sends Location and HH:mm:ss format |
+
+---
+
+## 🔄 Changelog
+### v1.1.0 — April 2026
+- ✅ Added global `InvalidOperationException → 409 Conflict` middleware in `Program.cs`
+- ✅ `SubjectService`: auto-unlinks Teachers before subject deletion
+- ✅ `ClassesController`: deletion guard now checks both Students and Teachers
+- ✅ `StudentService`: wrapped SaveChangesAsync in DbUpdateException catch
+- ✅ `LessonForm.jsx`: fixed field name `room → Location` and TimeSpan format
+- ✅ Parent-Student creation circular dependency resolved
 
 ---
 
 ## 📝 License
-
 This project is **proprietary and confidential**. Unauthorized copying, distribution, or modification is prohibited without explicit permission from the project owner.
 
 ---
