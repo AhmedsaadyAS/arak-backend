@@ -5,11 +5,11 @@ namespace Arak.BLL.Service.Abstraction
     public interface IAttendanceService
     {
         Task<AttendanceDto> MarkAttendanceAsync(MarkAttendanceDto dto);
-        Task<IEnumerable<AttendanceDto>> BulkMarkAttendanceAsync(BulkMarkAttendanceDto dto);
-        Task<PagedResult<AttendanceDto>> GetClassAttendanceByDateAsync(int classId, DateOnly date, int page, int pageSize);
-        Task<IEnumerable<AttendanceDto>> GetStudentAttendanceByMonthAsync(int studentId, int month, int year);
-        Task<StudentAttendanceStatsDto> GetStudentStatsAsync(int studentId);
+        Task<int> BulkMarkAttendanceAsync(BulkMarkAttendanceDto dto, int teacherId);
+        Task<ClassAttendanceResponseDto> GetClassAttendanceAsync(int classId, DateOnly date);
+        Task<AttendanceSummaryDto> GetClassSummaryAsync(int classId, DateOnly date);
+        Task<StudentAttendanceDetailDto> GetStudentAttendanceDetailsAsync(int studentId, int month, int year, string userId, string role);
         Task<AttendanceDto> UpdateAttendanceAsync(int id, UpdateAttendanceDto dto);
-        Task<int> BulkUpdateTimeOutAsync(BulkUpdateTimeOutDto dto);
+        Task<int> BulkUpdateTimeoutAsync(BulkTimeoutDto dto, int teacherId);
     }
 }

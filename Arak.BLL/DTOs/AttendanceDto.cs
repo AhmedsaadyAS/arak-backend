@@ -34,13 +34,13 @@ namespace Arak.BLL.DTOs
         public TimeSpan? TimeOut { get; set; }
         
         [Required]
-        public AttendanceStatus Status { get; set; }
+        public string Status { get; set; }
         
         public string? Notes { get; set; }
     }
 
     /// <summary>
-    /// Request DTO for bulk marking attendance for a class.
+    /// Request DTO for bulk marking morning attendance.
     /// </summary>
     public class BulkMarkAttendanceDto
     {
@@ -50,22 +50,20 @@ namespace Arak.BLL.DTOs
         [Required]
         public DateOnly Date { get; set; }
         
-        public List<BulkAttendanceRecord> Records { get; set; } = new();
+        public string Session { get; set; } = "Morning";
+        
+        public List<MorningRecordDto> Records { get; set; } = new();
     }
 
-    public class BulkAttendanceRecord
+    public class MorningRecordDto
     {
         [Required]
         public int StudentId { get; set; }
         
         [Required]
-        public AttendanceStatus Status { get; set; }
+        public string Status { get; set; } = "Present";
         
-        public TimeSpan? TimeIn { get; set; }
-        
-        public TimeSpan? TimeOut { get; set; }
-        
-        public string? Notes { get; set; }
+        public TimeOnly? TimeIn { get; set; }
     }
 
     /// <summary>
@@ -73,12 +71,12 @@ namespace Arak.BLL.DTOs
     /// </summary>
     public class UpdateAttendanceDto
     {
-        public TimeSpan? TimeIn { get; set; }
-        
-        public TimeSpan? TimeOut { get; set; }
-        
         [Required]
-        public AttendanceStatus Status { get; set; }
+        public string Status { get; set; } = string.Empty;
+        
+        public TimeOnly? TimeIn { get; set; }
+        
+        public TimeOnly? TimeOut { get; set; }
         
         public string? Notes { get; set; }
     }
@@ -96,9 +94,9 @@ namespace Arak.BLL.DTOs
     }
 
     /// <summary>
-    /// Request DTO for bulk updating TimeOut for a class.
+    /// Request DTO for bulk updating TimeOut (Afternoon session).
     /// </summary>
-    public class BulkUpdateTimeOutDto
+    public class BulkTimeoutDto
     {
         [Required]
         public int ClassId { get; set; }
@@ -106,15 +104,68 @@ namespace Arak.BLL.DTOs
         [Required]
         public DateOnly Date { get; set; }
         
-        public List<TimeOutRecord> Records { get; set; } = new();
+        public List<TimeoutRecordDto> Records { get; set; } = new();
     }
 
-    public class TimeOutRecord
+    public class TimeoutRecordDto
     {
         [Required]
         public int StudentId { get; set; }
         
         [Required]
-        public TimeSpan TimeOut { get; set; }
+        public TimeOnly TimeOut { get; set; }
+    }
+    
+    /// <summary>
+    /// Response DTO containing all students in a class with matching records or fallbacks.
+    /// </summary>
+    public class ClassAttendanceResponseDto
+    {
+        public int ClassId { get; set; }
+        public DateOnly Date { get; set; }
+        public List<StudentAttendanceItemDto> Students { get; set; } = new();
+    }
+
+    public class StudentAttendanceItemDto
+    {
+        public int StudentId { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public string Status { get; set; } = "NotRecorded";
+        public TimeOnly? TimeIn { get; set; }
+        public TimeOnly? TimeOut { get; set; }
+    }
+
+    public class AttendanceSummaryDto
+    {
+        public int TotalStudents { get; set; }
+        public int PresentCount { get; set; }
+        public double PresentRate { get; set; }
+        public int AbsentCount { get; set; }
+        public double AbsentRate { get; set; }
+        public int LateCount { get; set; }
+        public double LateRate { get; set; }
+        public int NotRecordedCount { get; set; }
+    }
+
+    public class StudentAttendanceDetailDto
+    {
+        public string StudentName { get; set; } = string.Empty;
+        public string Grade { get; set; } = string.Empty;
+        public string ClassName { get; set; } = string.Empty;
+        public string TodayStatus { get; set; } = "NotRecorded";
+        public TimeOnly? TodayTimeIn { get; set; }
+        public TimeOnly? TodayTimeOut { get; set; }
+        public double AttendanceRate { get; set; }
+        public int LateArrivals { get; set; }
+        public int Absences { get; set; }
+        public List<AttendanceRecordItemDto> Records { get; set; } = new();
+    }
+
+    public class AttendanceRecordItemDto
+    {
+        public DateOnly Date { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public TimeOnly? TimeIn { get; set; }
+        public TimeOnly? TimeOut { get; set; }
     }
 }

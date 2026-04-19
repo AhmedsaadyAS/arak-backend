@@ -63,7 +63,7 @@ namespace Arak.DAL.Database
 
         // ── Scheduling & Attendance ───────────────────────────────────────────
         public DbSet<TimeTable> TimeTables { get; set; }
-        public DbSet<Attendance> Attendances { get; set; }
+        public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
         public DbSet<Assignment> Assignments { get; set; }
 
         // ── New Entities (Step 2) ─────────────────────────────────────────────

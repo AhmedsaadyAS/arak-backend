@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace Arak.DAL.Entities
@@ -17,7 +17,7 @@ namespace Arak.DAL.Entities
         public TimeTable? TimeTable { get; set; }
 
         [JsonIgnore]
-        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+        public ICollection<AttendanceRecord> Attendances { get; set; } = new List<AttendanceRecord>();
         [JsonIgnore]
         public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
         [JsonIgnore]

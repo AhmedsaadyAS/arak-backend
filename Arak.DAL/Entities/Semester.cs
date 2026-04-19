@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace Arak.DAL.Entities
@@ -20,7 +20,7 @@ namespace Arak.DAL.Entities
         [JsonIgnore]
         public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
         [JsonIgnore]
-        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+        public ICollection<AttendanceRecord> Attendances { get; set; } = new List<AttendanceRecord>();
         [JsonIgnore]
         public ICollection<Subject> Subjects { get; set; } = new List<Subject>();
         [JsonIgnore]

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Arak.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260419182730_AddAttendanceEntity")]
-    partial class AddAttendanceEntity
+    [Migration("20260419222401_RebuildAttendanceRecord")]
+    partial class RebuildAttendanceRecord
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -195,7 +195,7 @@ namespace Arak.DAL.Migrations
                     b.ToTable("Assignments");
                 });
 
-            modelBuilder.Entity("Arak.DAL.Entities.Attendance", b =>
+            modelBuilder.Entity("Arak.DAL.Entities.AttendanceRecord", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -203,31 +203,44 @@ namespace Arak.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ClassId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("SemesterId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.Property<string>("Session")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("StudentId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TeacherId")
+                    b.Property<int>("TeacherId")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan?>("TimeIn")
+                    b.Property<TimeOnly?>("TimeIn")
                         .HasColumnType("time");
 
-                    b.Property<TimeSpan?>("TimeOut")
+                    b.Property<TimeOnly?>("TimeOut")
                         .HasColumnType("time");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClassId");
 
                     b.HasIndex("SemesterId");
 
@@ -235,7 +248,7 @@ namespace Arak.DAL.Migrations
 
                     b.HasIndex("TeacherId");
 
-                    b.ToTable("Attendances");
+                    b.ToTable("AttendanceRecords");
                 });
 
             modelBuilder.Entity("Arak.DAL.Entities.Class", b =>
@@ -904,8 +917,14 @@ namespace Arak.DAL.Migrations
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("Arak.DAL.Entities.Attendance", b =>
+            modelBuilder.Entity("Arak.DAL.Entities.AttendanceRecord", b =>
                 {
+                    b.HasOne("Arak.DAL.Entities.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Arak.DAL.Entities.Semester", null)
                         .WithMany("Attendances")
                         .HasForeignKey("SemesterId")
@@ -917,12 +936,17 @@ namespace Arak.DAL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Arak.DAL.Entities.Teacher", null)
+                    b.HasOne("Arak.DAL.Entities.Teacher", "Teacher")
                         .WithMany("Attendances")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Class");
 
                     b.Navigation("Student");
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("Arak.DAL.Entities.Class", b =>

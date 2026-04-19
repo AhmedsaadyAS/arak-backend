@@ -6,226 +6,236 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Arak.DAL.Database;
 
 namespace Arak.BLL.Service.Implementation
 {
     public class AttendanceService : IAttendanceService
     {
-        private readonly IGenericRepository<Attendance> _attendanceRepository;
+        private readonly IGenericRepository<AttendanceRecord> _attendanceRepository;
         private readonly IGenericRepository<Student> _studentRepository;
+        private readonly AppDbContext _context;
 
         public AttendanceService(
-            IGenericRepository<Attendance> attendanceRepository,
-            IGenericRepository<Student> studentRepository)
+            IGenericRepository<AttendanceRecord> attendanceRepository,
+            IGenericRepository<Student> studentRepository,
+            AppDbContext context)
         {
             _attendanceRepository = attendanceRepository;
             _studentRepository = studentRepository;
+            _context = context;
         }
 
-        public async Task<AttendanceDto> MarkAttendanceAsync(MarkAttendanceDto dto)
+        public Task<AttendanceDto> MarkAttendanceAsync(MarkAttendanceDto dto) => throw new NotImplementedException();
+        public async Task<int> BulkMarkAttendanceAsync(BulkMarkAttendanceDto dto, int teacherId)
         {
-            var student = await _studentRepository.GetByIdAsync(dto.StudentId);
-            if (student == null) throw new KeyNotFoundException($"Student with ID {dto.StudentId} not found");
+            // Direct filtered query to avoid loading all records
+            var todayRecords = await _context.AttendanceRecords
+                .Where(a => a.Date == dto.Date && a.ClassId == dto.ClassId)
+                .ToDictionaryAsync(a => a.StudentId);
 
-            var attendance = new Attendance
-            {
-                StudentId = dto.StudentId,
-                Date = dto.Date,
-                TimeIn = dto.TimeIn,
-                TimeOut = dto.TimeOut,
-                Status = dto.Status,
-                Notes = dto.Notes
-            };
-
-            var created = await _attendanceRepository.CreateAsync(attendance);
-            await _attendanceRepository.SaveChangesAsync();
-
-            return MapToDto(created, student.Name);
-        }
-
-        public async Task<IEnumerable<AttendanceDto>> BulkMarkAttendanceAsync(BulkMarkAttendanceDto dto)
-        {
-            var results = new List<AttendanceDto>();
-            var allStudents = await _studentRepository.GetAllAsync();
-            var studentIds = dto.Records.Select(r => r.StudentId).ToList();
-            var studentDict = allStudents
-                .Where(s => studentIds.Contains(s.Id))
-                .ToDictionary(s => s.Id, s => s.Name);
+            int savedCount = 0;
 
             foreach (var record in dto.Records)
             {
-                var attendance = new Attendance
+                if (todayRecords.TryGetValue(record.StudentId, out var existing))
                 {
-                    StudentId = record.StudentId,
-                    Date = dto.Date,
-                    TimeIn = record.TimeIn,
-                    TimeOut = record.TimeOut,
-                    Status = record.Status,
-                    Notes = record.Notes
-                };
+                    // UPDATE existing logic
+                    existing.Status = record.Status;
+                    existing.TimeIn = record.TimeIn;
+                    existing.Session = dto.Session; 
+                    existing.TeacherId = teacherId;
+                    existing.UpdatedAt = DateTime.UtcNow;
 
-                var created = await _attendanceRepository.CreateAsync(attendance);
-                results.Add(MapToDto(created, studentDict.GetValueOrDefault(record.StudentId, "Unknown")));
+                    await _attendanceRepository.UpdateAsync(existing);
+                }
+                else
+                {
+                    // CREATE new logic
+                    var newAttendance = new AttendanceRecord
+                    {
+                        StudentId = record.StudentId,
+                        ClassId = dto.ClassId,
+                        TeacherId = teacherId,
+                        Date = dto.Date,
+                        Session = dto.Session,
+                        Status = record.Status,
+                        TimeIn = record.TimeIn,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    await _attendanceRepository.CreateAsync(newAttendance);
+                }
+                savedCount++;
             }
 
             await _attendanceRepository.SaveChangesAsync();
-            return results;
+            return savedCount;
         }
-
-        public async Task<PagedResult<AttendanceDto>> GetClassAttendanceByDateAsync(int classId, DateOnly date, int page, int pageSize)
+        public async Task<ClassAttendanceResponseDto> GetClassAttendanceAsync(int classId, DateOnly date)
         {
-            // 1. Get all students in the class
-            var allStudents = await _studentRepository.GetAllAsync();
-            var classStudents = allStudents.Where(s => s.ClassId == classId).ToList();
+            // 1. Get all students actively enrolled in this class
+            var students = await _context.Students
+                .Where(s => s.ClassId == classId)
+                .OrderBy(s => s.Name)
+                .ToListAsync();
 
-            // 2. Get all attendance records for these students on this date
-            var studentIds = classStudents.Select(s => s.Id).ToList();
-            var allAttendance = await _attendanceRepository.GetAllAsync();
-            var dateAttendance = allAttendance
-                .Where(a => a.Date == date && studentIds.Contains(a.StudentId))
-                .ToDictionary(a => a.StudentId);
+            // 2. Get existing attendance records for the scope
+            var recordsCache = await _context.AttendanceRecords
+                .Where(a => a.ClassId == classId && a.Date == date)
+                .ToDictionaryAsync(a => a.StudentId);
 
-            // 3. Map to DTOs, including "NotMarked" for students without records
-            var attendanceDtos = classStudents.Select(s => 
+            // 3. Map (Left Join)
+            var result = new ClassAttendanceResponseDto
             {
-                if (dateAttendance.TryGetValue(s.Id, out var att))
+                ClassId = classId,
+                Date = date,
+                Students = students.Select(s =>
                 {
-                    return MapToDto(att, s.Name);
-                }
-                
-                return new AttendanceDto
-                {
-                    StudentId = s.Id,
-                    StudentName = s.Name,
-                    Date = date,
-                    Status = "NotMarked"
-                };
-            }).ToList();
+                    var hasRecord = recordsCache.TryGetValue(s.Id, out var record);
+                    return new StudentAttendanceItemDto
+                    {
+                        StudentId = s.Id,
+                        StudentName = s.Name,
+                        Status = hasRecord ? record!.Status : "NotRecorded",
+                        TimeIn = hasRecord ? record!.TimeIn : null,
+                        TimeOut = hasRecord ? record!.TimeOut : null
+                    };
+                }).ToList()
+            };
 
-            // 4. Paginate
-            var total = attendanceDtos.Count;
-            var pagedData = attendanceDtos
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            return result;
+        }
+        public async Task<AttendanceSummaryDto> GetClassSummaryAsync(int classId, DateOnly date)
+        {
+            var totalStudents = await _context.Students.CountAsync(s => s.ClassId == classId);
+            var records = await _context.AttendanceRecords
+                .Where(a => a.ClassId == classId && a.Date == date)
+                .ToListAsync();
 
-            return new PagedResult<AttendanceDto>
+            var present = records.Count(r => r.Status == "Present");
+            var absent = records.Count(r => r.Status == "Absent");
+            var late = records.Count(r => r.Status == "Late");
+            var notRecorded = totalStudents - records.Count;
+
+            return new AttendanceSummaryDto
             {
-                Data = pagedData,
-                Total = total,
-                Page = page,
-                PageSize = pageSize
+                TotalStudents = totalStudents,
+                PresentCount = present,
+                PresentRate = totalStudents > 0 ? (present / (double)totalStudents) * 100 : 0,
+                AbsentCount = absent,
+                AbsentRate = totalStudents > 0 ? (absent / (double)totalStudents) * 100 : 0,
+                LateCount = late,
+                LateRate = totalStudents > 0 ? (late / (double)totalStudents) * 100 : 0,
+                NotRecordedCount = notRecorded
             };
         }
 
-        public async Task<IEnumerable<AttendanceDto>> GetStudentAttendanceByMonthAsync(int studentId, int month, int year)
+        public async Task<StudentAttendanceDetailDto> GetStudentAttendanceDetailsAsync(int studentId, int month, int year, string userId, string role)
         {
-            var student = await _studentRepository.GetByIdAsync(studentId);
-            if (student == null) return Enumerable.Empty<AttendanceDto>();
-
-            var allAttendance = await _attendanceRepository.GetAllAsync();
-            return allAttendance
-                .Where(a => a.StudentId == studentId && a.Date.Month == month && a.Date.Year == year)
-                .OrderBy(a => a.Date)
-                .Select(a => MapToDto(a, student.Name))
-                .ToList();
-        }
-
-        public async Task<StudentAttendanceStatsDto> GetStudentStatsAsync(int studentId)
-        {
-            var allAttendance = await _attendanceRepository.GetAllAsync();
-            var studentAttendance = allAttendance.Where(a => a.StudentId == studentId).ToList();
-
-            if (!studentAttendance.Any())
+            // Authorization Check for Parents
+            if (role == "Parent")
             {
-                return new StudentAttendanceStatsDto { TotalDays = 0 };
+                // We assume ApplicationUserId is a shadow property or accessible via EF.Property
+                var parent = await _context.Parents.Include(p => p.Students)
+                    .FirstOrDefaultAsync(p => EF.Property<string>(p, "ApplicationUserId") == userId);
+                
+                if (parent == null || !parent.Students.Any(s => s.Id == studentId))
+                    throw new UnauthorizedAccessException("You can only view attendance for your linked children.");
             }
 
-            int presentCount = studentAttendance.Count(a => a.Status == AttendanceStatus.Present);
-            int lateCount = studentAttendance.Count(a => a.Status == AttendanceStatus.Late);
-            int absenceCount = studentAttendance.Count(a => a.Status == AttendanceStatus.Absent);
-            int totalDays = studentAttendance.Count;
+            var student = await _context.Students.Include(s => s.Class).FirstOrDefaultAsync(s => s.Id == studentId);
+            if (student == null) throw new KeyNotFoundException("Student not found.");
 
-            double rate = (double)(presentCount + lateCount) / totalDays * 100;
+            var startDate = new DateOnly(year, month, 1);
+            var endDate = startDate.AddMonths(1).AddDays(-1);
 
-            return new StudentAttendanceStatsDto
+            var records = await _context.AttendanceRecords
+                .Where(a => a.StudentId == studentId && a.Date >= startDate && a.Date <= endDate)
+                .OrderByDescending(a => a.Date)
+                .ToListAsync();
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var todayRecord = records.FirstOrDefault(r => r.Date == today);
+
+            // Stats calculations
+            int totalDays = records.Count;
+            int present = records.Count(r => r.Status == "Present" || r.Status == "Late");
+            int late = records.Count(r => r.Status == "Late");
+            int absent = records.Count(r => r.Status == "Absent");
+
+            return new StudentAttendanceDetailDto
             {
-                AttendanceRate = Math.Round(rate, 1),
-                PresentCount = presentCount,
-                LateCount = lateCount,
-                AbsenceCount = absenceCount,
-                TotalDays = totalDays
+                StudentName = student.Name,
+                Grade = student.Grade,
+                ClassName = student.Class?.Name ?? "N/A",
+                TodayStatus = todayRecord?.Status ?? "NotRecorded",
+                TodayTimeIn = todayRecord?.TimeIn,
+                TodayTimeOut = todayRecord?.TimeOut,
+                AttendanceRate = totalDays > 0 ? (present / (double)totalDays) * 100 : 0,
+                LateArrivals = late,
+                Absences = absent,
+                Records = records.Select(r => new AttendanceRecordItemDto
+                {
+                    Date = r.Date,
+                    Status = r.Status,
+                    TimeIn = r.TimeIn,
+                    TimeOut = r.TimeOut
+                }).ToList()
             };
         }
 
         public async Task<AttendanceDto> UpdateAttendanceAsync(int id, UpdateAttendanceDto dto)
         {
-            var attendance = await _attendanceRepository.GetByIdAsync(id);
-            if (attendance == null) throw new KeyNotFoundException($"Attendance record with ID {id} not found");
+            var record = await _attendanceRepository.GetByIdAsync(id);
+            if (record == null) throw new KeyNotFoundException("Attendance record not found.");
 
-            var student = await _studentRepository.GetByIdAsync(attendance.StudentId);
+            record.Status = dto.Status;
+            record.TimeIn = dto.TimeIn;
+            record.TimeOut = dto.TimeOut;
+            record.UpdatedAt = DateTime.UtcNow;
 
-            attendance.TimeIn = dto.TimeIn;
-            attendance.TimeOut = dto.TimeOut;
-            attendance.Status = dto.Status;
-            attendance.Notes = dto.Notes;
-
-            await _attendanceRepository.UpdateAsync(attendance);
+            await _attendanceRepository.UpdateAsync(record);
             await _attendanceRepository.SaveChangesAsync();
 
-            return MapToDto(attendance, student?.Name ?? "Unknown");
+            return new AttendanceDto
+            {
+                Id = record.Id,
+                StudentId = record.StudentId,
+                Date = record.Date,
+                Status = record.Status,
+                TimeIn = record.TimeIn.HasValue ? record.TimeIn.Value.ToTimeSpan() : null,
+                TimeOut = record.TimeOut.HasValue ? record.TimeOut.Value.ToTimeSpan() : null
+            };
         }
-
-        public async Task<int> BulkUpdateTimeOutAsync(BulkUpdateTimeOutDto dto)
+        public async Task<int> BulkUpdateTimeoutAsync(BulkTimeoutDto dto, int teacherId)
         {
-            // 1. Get all students in the class
-            var allStudents = await _studentRepository.GetAllAsync();
-            var classStudentIds = allStudents
-                .Where(s => s.ClassId == dto.ClassId)
-                .Select(s => s.Id)
-                .ToList();
-
-            // 2. Get existing attendance records for these students on this date
-            var allAttendance = await _attendanceRepository.GetAllAsync();
-            var existingRecords = allAttendance
-                .Where(a => a.Date == dto.Date && classStudentIds.Contains(a.StudentId))
-                .ToDictionary(a => a.StudentId);
+            // Direct filtered query 
+            var todayRecords = await _context.AttendanceRecords
+                .Where(a => a.Date == dto.Date && a.ClassId == dto.ClassId)
+                .ToDictionaryAsync(a => a.StudentId);
 
             int updatedCount = 0;
 
-            // 3. Update TimeOut for matching records
             foreach (var record in dto.Records)
             {
-                if (existingRecords.TryGetValue(record.StudentId, out var attendance))
+                // Skip silently if the record doesn't exist 
+                if (todayRecords.TryGetValue(record.StudentId, out var existing))
                 {
-                    attendance.TimeOut = record.TimeOut;
-                    await _attendanceRepository.UpdateAsync(attendance);
+                    existing.TimeOut = record.TimeOut;
+                    existing.Session = "Afternoon";
+                    existing.TeacherId = teacherId; // Update trailing record of who signed them out
+                    existing.UpdatedAt = DateTime.UtcNow;
+
+                    await _attendanceRepository.UpdateAsync(existing);
                     updatedCount++;
                 }
             }
 
-            // 4. Save all changes
-            if (updatedCount > 0)
-            {
-                await _attendanceRepository.SaveChangesAsync();
-            }
-
+            await _attendanceRepository.SaveChangesAsync();
             return updatedCount;
-        }
-
-        private static AttendanceDto MapToDto(Attendance entity, string studentName)
-        {
-            return new AttendanceDto
-            {
-                Id = entity.Id,
-                StudentId = entity.StudentId,
-                StudentName = studentName,
-                Date = entity.Date,
-                TimeIn = entity.TimeIn,
-                TimeOut = entity.TimeOut,
-                Status = entity.Status.ToString(),
-                Notes = entity.Notes
-            };
         }
     }
 }
