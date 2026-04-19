@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Arak.DAL.Database;
+using Arak.DAL.Entities;
 
 namespace Arak.PLL.Controllers
 {
