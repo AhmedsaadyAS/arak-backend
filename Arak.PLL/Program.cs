@@ -176,13 +176,19 @@ namespace Arak.PLL
                 var statusCode = exception switch
                 {
                     UnauthorizedAccessException => 401,
-                    InvalidOperationException => 400,
+                    InvalidOperationException => 409,
                     KeyNotFoundException => 404,
                     _ => 500
                 };
+
+                // Provide specific exception message ONLY for 409 Conflict, otherwise use generic (except in Dev mode)
+                var message = statusCode == 409 
+                    ? exception?.Message 
+                    : (app.Environment.IsDevelopment() ? exception?.Message : "An unexpected error occurred.");
+
                 return Results.Problem(
-                    title: "An error occurred",
-                    detail: app.Environment.IsDevelopment() ? exception?.Message : null,
+                    title: statusCode == 409 ? "Data Conflict" : "An error occurred",
+                    detail: message,
                     statusCode: statusCode);
             });
 

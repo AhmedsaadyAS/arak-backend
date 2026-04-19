@@ -14,9 +14,14 @@ namespace Arak.DAL.Database
         {
             base.OnModelCreating(modelBuilder);
 
-            // Global rule: prevent accidental cascade deletes across the entire model.
-            // Applied to ALL relationships including the new ArakEvent, Fee, Evaluation FKs.
+            // Global rule: prevent accidental cascade deletes across domain entities.
+            // IMPORTANT: Exclude ASP.NET Identity tables (AspNetUsers*, AspNetRoles*) so
+            // UserManager.DeleteAsync can still cascade-remove its own child rows
+            // (AspNetUserRoles, AspNetUserClaims, AspNetUserLogins, AspNetUserTokens).
+            var identityTablePrefixes = new[] { "AspNet" };
             foreach (var relationship in modelBuilder.Model.GetEntityTypes()
+                         .Where(e => !identityTablePrefixes.Any(p =>
+                             (e.GetTableName() ?? string.Empty).StartsWith(p)))
                          .SelectMany(e => e.GetForeignKeys()))
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;

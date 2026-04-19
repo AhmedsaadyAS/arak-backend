@@ -134,11 +134,11 @@ namespace ARAK.PLL.Controllers
 
             if (cls == null) return NotFound(new { message = $"Class {id} not found." });
 
-            // Guard: prevent deletion if students are enrolled
-            if (cls.Students.Any())
+            // Guard: prevent deletion if students are enrolled or teachers are assigned
+            if (cls.Students.Any() || cls.Teachers.Any())
                 return Conflict(new
                 {
-                    message = $"Cannot delete class '{cls.Name}' — it has {cls.Students.Count} enrolled student(s). Re-assign students first."
+                    message = $"Cannot delete class '{cls.Name}' — it has enrolled students or assigned teachers."
                 });
 
             _db.Classes.Remove(cls);

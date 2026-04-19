@@ -55,6 +55,9 @@ namespace ARAK.PLL.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateAsync([FromBody] CreateParentDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                return BadRequest(new { errors = new[] { "Email is required." } });
+
             // Check if user already exists
             var existingUser = await _userManager.FindByEmailAsync(dto.Email);
             ApplicationUser user;
@@ -65,7 +68,7 @@ namespace ARAK.PLL.Controllers
                 var existingParent = await _db.Parents
                     .FirstOrDefaultAsync(p => p.ApplicationUser != null && p.ApplicationUser.Id == existingUser.Id);
                 if (existingParent != null)
-                    return Ok(MapToDto(existingParent));
+                    return BadRequest(new { errors = new[] { "A parent with this email already exists." } });
 
                 user = existingUser;
             }
@@ -129,11 +132,55 @@ namespace ARAK.PLL.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
-            var parent = await _db.Parents.FindAsync(id);
-            if (parent == null) return NotFound();
-            _db.Parents.Remove(parent);
-            await _db.SaveChangesAsync();
-            return Ok(new { message = "Parent deleted." });
+            var parent = await _db.Parents
+                .Include(p => p.ApplicationUser)
+                .Include(p => p.Students)
+                .FirstOrDefaultAsync(p => p.ParentId == id);
+
+            if (parent == null) return NotFound(new { message = $"Parent {id} not found." });
+
+            try
+            {
+                // 1. Unlink dependent students (set ParentId = null) instead of deleting
+                if (parent.Students != null)
+                {
+                    foreach (var student in parent.Students)
+                        student.ParentId = null;
+                    await _db.SaveChangesAsync();
+                }
+
+                // 2. Remove the Parent domain row
+                _db.Parents.Remove(parent);
+                await _db.SaveChangesAsync();
+
+                // 3. Remove the Parent role, and only delete Identity user if no other roles remain
+                if (parent.ApplicationUser != null)
+                {
+                    if (await _userManager.IsInRoleAsync(parent.ApplicationUser, "Parent"))
+                    {
+                        var uid = parent.ApplicationUser.Id;
+                        await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserRoles WHERE UserId = '{uid}' AND RoleId = (SELECT Id FROM AspNetRoles WHERE Name = 'Parent')");
+                    }
+
+                    var remainingRoles = await _userManager.GetRolesAsync(parent.ApplicationUser);
+                    if (!remainingRoles.Any())
+                    {
+                        var uid = parent.ApplicationUser.Id;
+                        await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserRoles WHERE UserId = '{uid}'");
+                        await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserClaims WHERE UserId = '{uid}'");
+                        await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserLogins WHERE UserId = '{uid}'");
+                        await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserTokens WHERE UserId = '{uid}'");
+
+                        await _userManager.DeleteAsync(parent.ApplicationUser);
+                    }
+                }
+
+                return Ok(new { message = "Parent deleted." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while deleting the parent.", error = ex.Message });
+            }
         }
 
         // ── DTO mapping ───────────────────────────────────────────────────

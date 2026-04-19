@@ -78,7 +78,17 @@ namespace Arak.BLL.Service.Implementation
 		public async Task<bool> DeleteAsync(int Id)
 		{
 			var result = await _studentRepository.DeleteAsync(Id);
-			if (result) await _studentRepository.SaveChangesAsync();
+			if (result) 
+            {
+                try 
+                {
+                    await _studentRepository.SaveChangesAsync();
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+                {
+                    throw new InvalidOperationException("Cannot delete this entity as it is currently referenced by other active records. Please re-assign or remove them first.");
+                }
+            }
 			return result;
 		}
     }

@@ -16,7 +16,6 @@ namespace Arak.DAL.Database
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-            // Wrap entire seed in a transaction for atomicity
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
             try
             {
@@ -28,7 +27,7 @@ namespace Arak.DAL.Database
                         await roleManager.CreateAsync(new IdentityRole(roleName));
                 }
 
-                // 2. Admin Users (Super Admin + Academic Admin)
+                // 2. Admin Users
                 const string adminEmail = "admin@arak.com";
                 if (await userManager.FindByEmailAsync(adminEmail) == null)
                 {
@@ -42,7 +41,6 @@ namespace Arak.DAL.Database
                     if (createResult.Succeeded) await userManager.AddToRoleAsync(adminUser, "Super Admin");
                 }
 
-                // Academic Admin user
                 const string academicEmail = "academic@arak.com";
                 if (await userManager.FindByEmailAsync(academicEmail) == null)
                 {
@@ -56,19 +54,19 @@ namespace Arak.DAL.Database
                     if (createResult.Succeeded) await userManager.AddToRoleAsync(academicUser, "Academic Admin");
                 }
 
-                // 3. Dummy Lookup Data (Classes, Subjects)
+                // 3. Classes & Subjects
                 if (!await dbContext.Classes.AnyAsync())
                 {
                     dbContext.Classes.AddRange(
-                        new Class { Name = "Grade 4-A", Grade = "Grade 4", Stage = "primary", Description = "Primary - Grade 4A" },
-                        new Class { Name = "Grade 4-B", Grade = "Grade 4", Stage = "primary", Description = "Primary - Grade 4B" },
-                        new Class { Name = "Grade 5-A", Grade = "Grade 5", Stage = "primary", Description = "Primary - Grade 5A" },
-                        new Class { Name = "Grade 7-A", Grade = "Grade 7", Stage = "preparatory", Description = "Preparatory - Grade 7A" },
-                        new Class { Name = "Grade 7-B", Grade = "Grade 7", Stage = "preparatory", Description = "Preparatory - Grade 7B" },
-                        new Class { Name = "Grade 8-A", Grade = "Grade 8", Stage = "preparatory", Description = "Preparatory - Grade 8A" },
-                        new Class { Name = "Grade 10-A", Grade = "Grade 10", Stage = "secondary", Description = "Secondary - Grade 10A" },
-                        new Class { Name = "Grade 10-B", Grade = "Grade 10", Stage = "secondary", Description = "Secondary - Grade 10B" },
-                        new Class { Name = "Grade 11-A", Grade = "Grade 11", Stage = "secondary", Description = "Secondary - Grade 11A" }
+                        new Class { Name = "Grade 4-A",  Grade = "Grade 4",  Stage = "primary",      Description = "Primary - Grade 4A"      },
+                        new Class { Name = "Grade 4-B",  Grade = "Grade 4",  Stage = "primary",      Description = "Primary - Grade 4B"      },
+                        new Class { Name = "Grade 5-A",  Grade = "Grade 5",  Stage = "primary",      Description = "Primary - Grade 5A"      },
+                        new Class { Name = "Grade 7-A",  Grade = "Grade 7",  Stage = "preparatory",  Description = "Preparatory - Grade 7A"  },
+                        new Class { Name = "Grade 7-B",  Grade = "Grade 7",  Stage = "preparatory",  Description = "Preparatory - Grade 7B"  },
+                        new Class { Name = "Grade 8-A",  Grade = "Grade 8",  Stage = "preparatory",  Description = "Preparatory - Grade 8A"  },
+                        new Class { Name = "Grade 10-A", Grade = "Grade 10", Stage = "secondary",    Description = "Secondary - Grade 10A"   },
+                        new Class { Name = "Grade 10-B", Grade = "Grade 10", Stage = "secondary",    Description = "Secondary - Grade 10B"   },
+                        new Class { Name = "Grade 11-A", Grade = "Grade 11", Stage = "secondary",    Description = "Secondary - Grade 11A"   }
                     );
                     await dbContext.SaveChangesAsync();
                 }
@@ -77,22 +75,20 @@ namespace Arak.DAL.Database
                 {
                     dbContext.Subjects.AddRange(
                         new Subject { Name = "Mathematics" },
-                        new Subject { Name = "Physics" },
-                        new Subject { Name = "English" },
-                        new Subject { Name = "Arabic" }
+                        new Subject { Name = "Physics"     },
+                        new Subject { Name = "English"     },
+                        new Subject { Name = "Arabic"      }
                     );
                     await dbContext.SaveChangesAsync();
                 }
 
-                // 4. Dummy Users (Parents & Teachers)
-                var parent1 = await CreateUser(userManager, roleManager, "parent1@arak.com", "John Parent", "Parent");
-                var parent2 = await CreateUser(userManager, roleManager, "parent2@arak.com", "Sarah Mother", "Parent");
+                // 4. Teachers & Parents
+                var parent1  = await CreateUser(userManager, roleManager, "parent1@arak.com",  "John Parent",   "Parent");
+                var parent2  = await CreateUser(userManager, roleManager, "parent2@arak.com",  "Sarah Mother",  "Parent");
+                var teacher1 = await CreateUser(userManager, roleManager, "teacher1@arak.com", "Ms. Maria",     "Teacher");
+                var teacher2 = await CreateUser(userManager, roleManager, "teacher2@arak.com", "Mr. Anderson",  "Teacher");
 
-                var teacher1 = await CreateUser(userManager, roleManager, "teacher1@arak.com", "Ms. Maria", "Teacher");
-                var teacher2 = await CreateUser(userManager, roleManager, "teacher2@arak.com", "Mr. Anderson", "Teacher");
-
-                // Register teachers — check individually, not all-or-nothing
-                var math = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Mathematics");
+                var math    = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Mathematics");
                 var english = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "English");
 
                 if (!await dbContext.Teachers.AnyAsync(t => t.ApplicationUser.Email == "teacher1@arak.com"))
@@ -106,7 +102,6 @@ namespace Arak.DAL.Database
                     await dbContext.SaveChangesAsync();
                 }
 
-                // Register parents — check individually
                 if (!await dbContext.Parents.AnyAsync(p => p.ApplicationUser.Email == "parent1@arak.com"))
                 {
                     dbContext.Parents.Add(new Parent { ApplicationUser = parent1 });
@@ -118,7 +113,7 @@ namespace Arak.DAL.Database
                     await dbContext.SaveChangesAsync();
                 }
 
-                // 5. Dummy Students — check individually
+                // 5. Students
                 var p1 = await dbContext.Parents.FirstOrDefaultAsync(p => p.ApplicationUser.Email == "parent1@arak.com");
                 var c1 = await dbContext.Classes.FirstOrDefaultAsync(c => c.Name == "Grade 4-A");
                 var c2 = await dbContext.Classes.FirstOrDefaultAsync(c => c.Name == "Grade 7-A");
@@ -127,48 +122,39 @@ namespace Arak.DAL.Database
                 {
                     dbContext.Students.AddRange(new List<Student>
                     {
-                        new Student {
-                            Name = "Alice Parent", StudentCode = "STU001", ClassId = c1?.Id,
-                            ParentId = p1?.ParentId, DateOfBirth = new DateTime(2015, 5, 20), Status = "Active", Grade = "4"
-                        },
-                        new Student {
-                            Name = "Bob Parent", StudentCode = "STU002", ClassId = c2?.Id,
-                            ParentId = p1?.ParentId, DateOfBirth = new DateTime(2014, 8, 15), Status = "Active", Grade = "7"
-                        },
-                        new Student {
-                            Name = "Charlie Mother", StudentCode = "STU003", ClassId = c1?.Id,
-                            DateOfBirth = new DateTime(2015, 1, 10), Status = "Active", Grade = "4"
-                        },
-                        new Student {
-                            Name = "Diana Student", StudentCode = "STU004", ClassId = c2?.Id,
-                            DateOfBirth = new DateTime(2014, 11, 30), Status = "Inactive", Grade = "7"
-                        },
-                        new Student {
-                            Name = "Evan Scholar", StudentCode = "STU005", ClassId = c1?.Id,
-                            DateOfBirth = new DateTime(2015, 4, 12), Status = "Active", Grade = "4"
-                        }
+                        new Student { Name = "Alice Parent",   StudentCode = "STU001", ClassId = c1?.Id, ParentId = p1?.ParentId, DateOfBirth = new DateTime(2015, 5,  20), Status = "Active",   Grade = "4" },
+                        new Student { Name = "Bob Parent",     StudentCode = "STU002", ClassId = c2?.Id, ParentId = p1?.ParentId, DateOfBirth = new DateTime(2014, 8,  15), Status = "Active",   Grade = "7" },
+                        new Student { Name = "Charlie Mother", StudentCode = "STU003", ClassId = c1?.Id,                         DateOfBirth = new DateTime(2015, 1,  10), Status = "Active",   Grade = "4" },
+                        new Student { Name = "Diana Student",  StudentCode = "STU004", ClassId = c2?.Id,                         DateOfBirth = new DateTime(2014, 11, 30), Status = "Inactive", Grade = "7" },
+                        new Student { Name = "Evan Scholar",   StudentCode = "STU005", ClassId = c1?.Id,                         DateOfBirth = new DateTime(2015, 4,  12), Status = "Active",   Grade = "4" }
                     });
                     await dbContext.SaveChangesAsync();
                 }
 
-                // 6. Timetable entries - link classes with subjects
+                // 6. TimeTables ✅ Location + TeacherId مضاف
                 if (!await dbContext.TimeTables.AnyAsync())
                 {
                     var mathSub = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Mathematics");
                     var physSub = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Physics");
-                    var engSub = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "English");
+                    var engSub  = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "English");
                     var arabSub = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Arabic");
 
                     var grade4a = await dbContext.Classes.FirstOrDefaultAsync(c => c.Name == "Grade 4-A");
                     var grade7a = await dbContext.Classes.FirstOrDefaultAsync(c => c.Name == "Grade 7-A");
 
+                    // Resolve teacher domain IDs for foreign key
+                    var t1 = await dbContext.Teachers.Include(t => t.ApplicationUser)
+                                .FirstOrDefaultAsync(t => t.ApplicationUser.Email == "teacher1@arak.com");
+                    var t2 = await dbContext.Teachers.Include(t => t.ApplicationUser)
+                                .FirstOrDefaultAsync(t => t.ApplicationUser.Email == "teacher2@arak.com");
+
                     dbContext.TimeTables.AddRange(
-                        new TimeTable { ClassId = grade4a?.Id, SubjectId = mathSub?.Id, DayOfWeek = DayOfWeek.Sunday, StartTime = TimeSpan.FromHours(8), EndTime = TimeSpan.FromHours(9.5) },
-                        new TimeTable { ClassId = grade4a?.Id, SubjectId = engSub?.Id, DayOfWeek = DayOfWeek.Sunday, StartTime = TimeSpan.FromHours(10), EndTime = TimeSpan.FromHours(11.5) },
-                        new TimeTable { ClassId = grade4a?.Id, SubjectId = arabSub?.Id, DayOfWeek = DayOfWeek.Monday, StartTime = TimeSpan.FromHours(8), EndTime = TimeSpan.FromHours(9.5) },
-                        new TimeTable { ClassId = grade7a?.Id, SubjectId = mathSub?.Id, DayOfWeek = DayOfWeek.Sunday, StartTime = TimeSpan.FromHours(8), EndTime = TimeSpan.FromHours(9.5) },
-                        new TimeTable { ClassId = grade7a?.Id, SubjectId = physSub?.Id, DayOfWeek = DayOfWeek.Monday, StartTime = TimeSpan.FromHours(10), EndTime = TimeSpan.FromHours(11.5) },
-                        new TimeTable { ClassId = grade7a?.Id, SubjectId = engSub?.Id, DayOfWeek = DayOfWeek.Tuesday, StartTime = TimeSpan.FromHours(8), EndTime = TimeSpan.FromHours(9.5) }
+                        new TimeTable { ClassId = grade4a?.Id, SubjectId = mathSub?.Id, TeacherId = t1?.TeacherId, DayOfWeek = DayOfWeek.Sunday,  StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 101" },
+                        new TimeTable { ClassId = grade4a?.Id, SubjectId = engSub?.Id,  TeacherId = t2?.TeacherId, DayOfWeek = DayOfWeek.Sunday,  StartTime = TimeSpan.FromHours(10), EndTime = TimeSpan.FromHours(11.5), Location = "Room 102" },
+                        new TimeTable { ClassId = grade4a?.Id, SubjectId = arabSub?.Id, TeacherId = t1?.TeacherId, DayOfWeek = DayOfWeek.Monday,  StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 101" },
+                        new TimeTable { ClassId = grade7a?.Id, SubjectId = mathSub?.Id, TeacherId = t1?.TeacherId, DayOfWeek = DayOfWeek.Sunday,  StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 201" },
+                        new TimeTable { ClassId = grade7a?.Id, SubjectId = physSub?.Id, TeacherId = t2?.TeacherId, DayOfWeek = DayOfWeek.Monday,  StartTime = TimeSpan.FromHours(10), EndTime = TimeSpan.FromHours(11.5), Location = "Lab 1"    },
+                        new TimeTable { ClassId = grade7a?.Id, SubjectId = engSub?.Id,  TeacherId = t2?.TeacherId, DayOfWeek = DayOfWeek.Tuesday, StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 202" }
                     );
                     await dbContext.SaveChangesAsync();
                 }
@@ -177,7 +163,6 @@ namespace Arak.DAL.Database
             }
             catch (Exception ex)
             {
-                // Transaction will rollback on exception
                 await transaction.RollbackAsync();
                 throw new InvalidOperationException($"Database initialization failed: {ex.Message}", ex);
             }

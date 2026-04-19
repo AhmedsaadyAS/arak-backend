@@ -9,10 +9,12 @@ namespace Arak.BLL.Service.Implementation
     public class SubjectService : ISubjectService
     {
         private readonly IGenericRepository<Subject> _repository;
+        private readonly IGenericRepository<Teacher> _teacherRepository;
 
-        public SubjectService(IGenericRepository<Subject> repository)
+        public SubjectService(IGenericRepository<Subject> repository, IGenericRepository<Teacher> teacherRepository)
         {
             _repository = repository;
+            _teacherRepository = teacherRepository;
         }
 
         public async Task<IEnumerable<Subject>> GetAllAsync() => await _repository.GetAllAsync();
@@ -31,8 +33,30 @@ namespace Arak.BLL.Service.Implementation
         }
         public async Task<bool> DeleteAsync(int id)
         {
+            // Unlink all assigned teachers first
+            var teachers = await _teacherRepository.GetAllAsync();
+            foreach (var t in teachers)
+            {
+                if (t.SubjectId == id)
+                {
+                    t.SubjectId = null;
+                    await _teacherRepository.UpdateAsync(t);
+                }
+            }
+            await _teacherRepository.SaveChangesAsync();
+
             var result = await _repository.DeleteAsync(id);
-            if (result) await _repository.SaveChangesAsync();
+            if (result)
+            {
+                try
+                {
+                    await _repository.SaveChangesAsync();
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+                {
+                    throw new System.InvalidOperationException("Cannot delete this entity as it is currently referenced by other active records. Please re-assign or remove them first.");
+                }
+            }
             return result;
         }
     }

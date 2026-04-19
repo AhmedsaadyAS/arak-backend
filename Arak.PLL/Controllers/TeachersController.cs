@@ -76,6 +76,9 @@ namespace ARAK.PLL.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateAsync([FromBody] TeacherDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                return BadRequest(new { errors = new[] { "Email is required." } });
+
             // Check if user already exists
             var existingUser = await _userManager.FindByEmailAsync(dto.Email);
             ApplicationUser user;
@@ -86,7 +89,7 @@ namespace ARAK.PLL.Controllers
                 var existingTeacher = await _db.Teachers
                     .FirstOrDefaultAsync(t => t.ApplicationUser != null && t.ApplicationUser.Id == existingUser.Id);
                 if (existingTeacher != null)
-                    return Ok(MapToDto(existingTeacher, existingTeacher.TeacherId));
+                    return BadRequest(new { errors = new[] { "A teacher with this email already exists." } });
 
                 user = existingUser;
             }
@@ -219,10 +222,38 @@ namespace ARAK.PLL.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
-            var teacher = await _db.Teachers.FindAsync(id);
+            var teacher = await _db.Teachers
+                .Include(t => t.ApplicationUser)
+                .FirstOrDefaultAsync(t => t.TeacherId == id);
+                
             if (teacher == null) return NotFound();
+
+            // 1. Remove Teacher domain row
             _db.Teachers.Remove(teacher);
             await _db.SaveChangesAsync();
+
+            // 2. Remove Teacher role and potentially the user
+            if (teacher.ApplicationUser != null)
+            {
+                if (await _userManager.IsInRoleAsync(teacher.ApplicationUser, "Teacher"))
+                {
+                    var uid = teacher.ApplicationUser.Id;
+                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserRoles WHERE UserId = '{uid}' AND RoleId = (SELECT Id FROM AspNetRoles WHERE Name = 'Teacher')");
+                }
+
+                var remainingRoles = await _userManager.GetRolesAsync(teacher.ApplicationUser);
+                if (!remainingRoles.Any())
+                {
+                    var uid = teacher.ApplicationUser.Id;
+                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserRoles WHERE UserId = '{uid}'");
+                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserClaims WHERE UserId = '{uid}'");
+                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserLogins WHERE UserId = '{uid}'");
+                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserTokens WHERE UserId = '{uid}'");
+
+                    await _userManager.DeleteAsync(teacher.ApplicationUser);
+                }
+            }
+
             return Ok(new { message = "Teacher deleted." });
         }
 
