@@ -146,6 +146,7 @@ namespace Arak.PLL
             builder.Services.AddScoped<IFeeService, FeeService>();
             builder.Services.AddScoped<ITaskService, TaskService>();
             builder.Services.AddScoped<IEvaluationService, EvaluationService>();
+            builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 
             // ══════════════════════════════════════════════════════════════════
             var app = builder.Build();

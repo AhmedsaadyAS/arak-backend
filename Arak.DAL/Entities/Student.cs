@@ -58,9 +58,6 @@ namespace Arak.DAL.Entities
         public Class? Class { get; set; }
 
         [JsonIgnore]
-        public ICollection<StudentAttendance> Attendances { get; set; } = new List<StudentAttendance>();
-
-        [JsonIgnore]
         public ICollection<StudentSubject> Subjects { get; set; } = new List<StudentSubject>();
 
         [JsonIgnore]

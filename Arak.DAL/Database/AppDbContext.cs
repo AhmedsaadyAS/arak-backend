@@ -57,7 +57,6 @@ namespace Arak.DAL.Database
         public DbSet<Gender> Genders { get; set; }
 
         // ── Relationships (Junction Tables) ───────────────────────────────────
-        public DbSet<StudentAttendance> StudentAttendances { get; set; }
         public DbSet<StudentSubject> StudentSubjects { get; set; }
         public DbSet<TeacherClass> TeacherClasses { get; set; }
         public DbSet<TeacherSemester> TeacherSemesters { get; set; }
