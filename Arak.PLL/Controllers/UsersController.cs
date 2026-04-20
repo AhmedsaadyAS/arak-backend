@@ -123,6 +123,16 @@ namespace Arak.PLL.Controllers
             if (dto.PhoneNumber is not null) user.PhoneNumber = dto.PhoneNumber;
             if (dto.Address     is not null) user.Address     = dto.Address;
 
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+            {
+                var removeResult = await _userManager.RemovePasswordAsync(user);
+                if (!removeResult.Succeeded)
+                    return BadRequest(new { message = "Failed to remove old password." });
+                var addResult = await _userManager.AddPasswordAsync(user, dto.Password);
+                if (!addResult.Succeeded)
+                    return BadRequest(new { message = addResult.Errors.FirstOrDefault()?.Description });
+            }
+
             await _userManager.UpdateAsync(user);
 
             // Update role if provided

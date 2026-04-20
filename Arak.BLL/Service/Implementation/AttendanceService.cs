@@ -27,8 +27,58 @@ namespace Arak.BLL.Service.Implementation
             _context = context;
         }
 
-        public Task<AttendanceDto> MarkAttendanceAsync(MarkAttendanceDto dto) => throw new NotImplementedException();
-        public async Task<int> BulkMarkAttendanceAsync(BulkMarkAttendanceDto dto, int teacherId)
+        public async Task<AttendanceDto> MarkAttendanceAsync(MarkAttendanceDto dto, int? teacherId)
+        {
+            // Try to find existing record for this student/class/date (Upsert logic)
+            var record = await _context.AttendanceRecords
+                .FirstOrDefaultAsync(a => a.StudentId == dto.StudentId && a.ClassId == dto.ClassId && a.Date == dto.Date);
+
+            if (record != null)
+            {
+                // Update - EF tracks this record from the query, so _attendanceRepository.Update is implicit
+                record.Status = dto.Status;
+                record.TimeIn = dto.TimeIn;
+                record.TimeOut = dto.TimeOut;
+                record.Session = dto.Session ?? "Morning";
+                record.TeacherId = teacherId;
+                record.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                // Create
+                record = new AttendanceRecord
+                {
+                    StudentId = dto.StudentId,
+                    ClassId = dto.ClassId,
+                    TeacherId = teacherId,
+                    Date = dto.Date,
+                    Session = dto.Session ?? "Morning",
+                    Status = dto.Status,
+                    TimeIn = dto.TimeIn,
+                    TimeOut = dto.TimeOut,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                
+                await _attendanceRepository.CreateAsync(record);
+            }
+
+            await _attendanceRepository.SaveChangesAsync();
+
+            return new AttendanceDto
+            {
+                Id = record.Id,
+                StudentId = record.StudentId,
+                ClassId = record.ClassId,
+                Date = record.Date,
+                Status = record.Status,
+                Session = record.Session,
+                TimeIn = record.TimeIn,
+                TimeOut = record.TimeOut
+            };
+        }
+
+        public async Task<int> BulkMarkAttendanceAsync(BulkMarkAttendanceDto dto, int? teacherId)
         {
             // Direct filtered query to avoid loading all records
             var todayRecords = await _context.AttendanceRecords
@@ -47,8 +97,6 @@ namespace Arak.BLL.Service.Implementation
                     existing.Session = dto.Session; 
                     existing.TeacherId = teacherId;
                     existing.UpdatedAt = DateTime.UtcNow;
-
-                    await _attendanceRepository.UpdateAsync(existing);
                 }
                 else
                 {
@@ -66,7 +114,7 @@ namespace Arak.BLL.Service.Implementation
                         UpdatedAt = DateTime.UtcNow
                     };
 
-                    await _attendanceRepository.CreateAsync(newAttendance);
+                    await _context.AttendanceRecords.AddAsync(newAttendance);
                 }
                 savedCount++;
             }
@@ -74,6 +122,7 @@ namespace Arak.BLL.Service.Implementation
             await _attendanceRepository.SaveChangesAsync();
             return savedCount;
         }
+
         public async Task<ClassAttendanceResponseDto> GetClassAttendanceAsync(int classId, DateOnly date)
         {
             // 1. Get all students actively enrolled in this class
@@ -97,6 +146,7 @@ namespace Arak.BLL.Service.Implementation
                     var hasRecord = recordsCache.TryGetValue(s.Id, out var record);
                     return new StudentAttendanceItemDto
                     {
+                        AttendanceRecordId = hasRecord ? record!.Id : 0,
                         StudentId = s.Id,
                         StudentName = s.Name,
                         Status = hasRecord ? record!.Status : "NotRecorded",
@@ -108,6 +158,7 @@ namespace Arak.BLL.Service.Implementation
 
             return result;
         }
+
         public async Task<AttendanceSummaryDto> GetClassSummaryAsync(int classId, DateOnly date)
         {
             var totalStudents = await _context.Students.CountAsync(s => s.ClassId == classId);
@@ -138,7 +189,6 @@ namespace Arak.BLL.Service.Implementation
             // Authorization Check for Parents
             if (role == "Parent")
             {
-                // We assume ApplicationUserId is a shadow property or accessible via EF.Property
                 var parent = await _context.Parents.Include(p => p.Students)
                     .FirstOrDefaultAsync(p => EF.Property<string>(p, "ApplicationUserId") == userId);
                 
@@ -169,6 +219,7 @@ namespace Arak.BLL.Service.Implementation
             return new StudentAttendanceDetailDto
             {
                 StudentName = student.Name,
+                ClassId = student.ClassId ?? 0,
                 Grade = student.Grade,
                 ClassName = student.Class?.Name ?? "N/A",
                 TodayStatus = todayRecord?.Status ?? "NotRecorded",
@@ -204,15 +255,17 @@ namespace Arak.BLL.Service.Implementation
             {
                 Id = record.Id,
                 StudentId = record.StudentId,
+                ClassId = record.ClassId,
                 Date = record.Date,
                 Status = record.Status,
-                TimeIn = record.TimeIn.HasValue ? record.TimeIn.Value.ToTimeSpan() : null,
-                TimeOut = record.TimeOut.HasValue ? record.TimeOut.Value.ToTimeSpan() : null
+                Session = record.Session,
+                TimeIn = record.TimeIn,
+                TimeOut = record.TimeOut
             };
         }
-        public async Task<int> BulkUpdateTimeoutAsync(BulkTimeoutDto dto, int teacherId)
+
+        public async Task<int> BulkUpdateTimeoutAsync(BulkTimeoutDto dto, int? teacherId)
         {
-            // Direct filtered query 
             var todayRecords = await _context.AttendanceRecords
                 .Where(a => a.Date == dto.Date && a.ClassId == dto.ClassId)
                 .ToDictionaryAsync(a => a.StudentId);
@@ -221,12 +274,11 @@ namespace Arak.BLL.Service.Implementation
 
             foreach (var record in dto.Records)
             {
-                // Skip silently if the record doesn't exist 
                 if (todayRecords.TryGetValue(record.StudentId, out var existing))
                 {
                     existing.TimeOut = record.TimeOut;
                     existing.Session = "Afternoon";
-                    existing.TeacherId = teacherId; // Update trailing record of who signed them out
+                    existing.TeacherId = teacherId;
                     existing.UpdatedAt = DateTime.UtcNow;
 
                     await _attendanceRepository.UpdateAsync(existing);

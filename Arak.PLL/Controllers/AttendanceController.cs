@@ -30,7 +30,18 @@ namespace Arak.PLL.Controllers
         {
             try
             {
-                var result = await _attendanceService.MarkAttendanceAsync(dto);
+                // 1. Get Logged-in User ID string
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId)) return Unauthorized("User claim not found.");
+
+                // 2. Fetch linked Teacher Profile (if exists)
+                var teacher = await _context.Teachers
+                    .FirstOrDefaultAsync(t => EF.Property<string>(t, "ApplicationUserId") == userId);
+
+                int? teacherId = teacher?.TeacherId;
+
+                // 3. Mark Attendance
+                var result = await _attendanceService.MarkAttendanceAsync(dto, teacherId);
                 return CreatedAtAction(nameof(MarkAttendance), new { id = result.Id }, result);
             }
             catch (KeyNotFoundException ex)
@@ -44,7 +55,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpPost("bulk")]
-        [Authorize(Roles = "Teacher")]
+        [Authorize(Roles = "Super Admin,Admin,Teacher")]
         public async Task<IActionResult> BulkMarkAttendance([FromBody] BulkMarkAttendanceDto dto)
         {
             try
@@ -53,15 +64,14 @@ namespace Arak.PLL.Controllers
                 var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User claim not found.");
 
-                // 2. Fetch linked Teacher Profile
+                // 2. Fetch linked Teacher Profile (if exists)
                 var teacher = await _context.Teachers
                     .FirstOrDefaultAsync(t => EF.Property<string>(t, "ApplicationUserId") == userId);
 
-                if (teacher == null)
-                    return Forbid("Only registered teachers can perform this action.");
+                int? teacherId = teacher?.TeacherId;
 
                 // 3. Upsert Records
-                var count = await _attendanceService.BulkMarkAttendanceAsync(dto, teacher.TeacherId);
+                var count = await _attendanceService.BulkMarkAttendanceAsync(dto, teacherId);
                 
                 return Ok(new { message = "Attendance saved successfully.", updatedCount = count });
             }
@@ -148,7 +158,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpPut("bulk-timeout")]
-        [Authorize(Roles = "Teacher")]
+        [Authorize(Roles = "Super Admin,Admin,Teacher")]
         public async Task<IActionResult> BulkUpdateTimeout([FromBody] BulkTimeoutDto dto)
         {
             try
@@ -157,15 +167,14 @@ namespace Arak.PLL.Controllers
                 var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId)) return Unauthorized("User claim not found.");
 
-                // 2. Fetch linked Teacher Profile
+                // 2. Fetch linked Teacher Profile (if exists)
                 var teacher = await _context.Teachers
                     .FirstOrDefaultAsync(t => EF.Property<string>(t, "ApplicationUserId") == userId);
 
-                if (teacher == null)
-                    return Forbid("Only registered teachers can perform this action.");
+                int? teacherId = teacher?.TeacherId;
 
                 // 3. Process the Bulk Timeout
-                var count = await _attendanceService.BulkUpdateTimeoutAsync(dto, teacher.TeacherId);
+                var count = await _attendanceService.BulkUpdateTimeoutAsync(dto, teacherId);
                 
                 return Ok(new { message = "TimeOut records updated successfully.", updatedCount = count });
             }

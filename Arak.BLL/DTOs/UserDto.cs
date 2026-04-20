@@ -30,5 +30,6 @@ namespace Arak.BLL.DTOs
         public string? PhoneNumber { get; init; }
         public string? Address     { get; init; }
         public string? Role        { get; init; }
+        public string? Password    { get; init; }
     }
 }

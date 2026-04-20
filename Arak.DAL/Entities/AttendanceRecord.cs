@@ -18,7 +18,7 @@ namespace Arak.DAL.Entities
         public Class? Class { get; set; }
 
         [ForeignKey("Teacher")]
-        public int TeacherId { get; set; }
+        public int? TeacherId { get; set; }
         [JsonIgnore]
         public Teacher? Teacher { get; set; }
 

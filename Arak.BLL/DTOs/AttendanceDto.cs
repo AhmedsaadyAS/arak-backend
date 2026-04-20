@@ -12,9 +12,11 @@ namespace Arak.BLL.DTOs
         public int StudentId { get; init; }
         public string StudentName { get; init; } = string.Empty;
         public DateOnly Date { get; init; }
-        public TimeSpan? TimeIn { get; init; }
-        public TimeSpan? TimeOut { get; init; }
+        public TimeOnly? TimeIn { get; init; }
+        public TimeOnly? TimeOut { get; init; }
         public string Status { get; init; } = string.Empty;
+        public int ClassId { get; init; }
+        public string? Session { get; init; }
         public string? Notes { get; init; }
     }
 
@@ -27,11 +29,16 @@ namespace Arak.BLL.DTOs
         public int StudentId { get; set; }
         
         [Required]
+        public int ClassId { get; set; }
+        
+        [Required]
         public DateOnly Date { get; set; }
         
-        public TimeSpan? TimeIn { get; set; }
+        public string Session { get; set; } = "Morning";
         
-        public TimeSpan? TimeOut { get; set; }
+        public TimeOnly? TimeIn { get; set; }
+        
+        public TimeOnly? TimeOut { get; set; }
         
         [Required]
         public string Status { get; set; }
@@ -128,6 +135,7 @@ namespace Arak.BLL.DTOs
 
     public class StudentAttendanceItemDto
     {
+        public int AttendanceRecordId { get; set; }
         public int StudentId { get; set; }
         public string StudentName { get; set; } = string.Empty;
         public string Status { get; set; } = "NotRecorded";
@@ -150,6 +158,7 @@ namespace Arak.BLL.DTOs
     public class StudentAttendanceDetailDto
     {
         public string StudentName { get; set; } = string.Empty;
+        public int ClassId { get; set; }
         public string Grade { get; set; } = string.Empty;
         public string ClassName { get; set; } = string.Empty;
         public string TodayStatus { get; set; } = "NotRecorded";
