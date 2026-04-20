@@ -187,22 +187,20 @@ namespace Arak.PLL.Controllers
                 var random = new Random();
                 int recordsAdded = 0;
 
+                var teacher = await _context.Teachers.FirstOrDefaultAsync();
+                if (teacher == null) return BadRequest("No teachers found to assign to attendance records.");
+
                 foreach (var cls in classes)
                 {
                     var students = await _context.Students.Where(s => s.ClassId == cls.Id).ToListAsync();
                     
-                    // Last 10 days (loop backwards)
                     for (int i = 0; i < 10; i++)
                     {
                         var date = DateOnly.FromDateTime(DateTime.Today.AddDays(-i));
-                        
-                        // Skip weekends (roughly)
-                        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
-                            continue;
+                        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) continue;
 
                         foreach (var student in students)
                         {
-                            // Avoid duplicates if re-running seed
                             if (await _context.AttendanceRecords.AnyAsync(a => a.StudentId == student.Id && a.Date == date))
                                 continue;
 
@@ -211,17 +209,8 @@ namespace Arak.PLL.Controllers
                             TimeOnly? timeIn = new TimeOnly(8, random.Next(0, 15));
                             TimeOnly? timeOut = new TimeOnly(14, random.Next(0, 30));
 
-                            if (chance > 85) // 15% Absent
-                            {
-                                status = "Absent";
-                                timeIn = null;
-                                timeOut = null;
-                            }
-                            else if (chance > 70) // 15% Late
-                            {
-                                status = "Late";
-                                timeIn = new TimeOnly(8, 30 + random.Next(1, 30));
-                            }
+                            if (chance > 85) { status = "Absent"; timeIn = null; timeOut = null; }
+                            else if (chance > 70) { status = "Late"; timeIn = new TimeOnly(8, 30 + random.Next(1, 30)); }
 
                             _context.AttendanceRecords.Add(new AttendanceRecord
                             {
@@ -232,7 +221,7 @@ namespace Arak.PLL.Controllers
                                 TimeIn = timeIn,
                                 TimeOut = timeOut,
                                 Session = status == "Absent" ? "Morning" : "Afternoon",
-                                TeacherId = 1, // Default teacher
+                                TeacherId = teacher.TeacherId,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow
                             });
