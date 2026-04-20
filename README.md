@@ -90,7 +90,7 @@ dotnet run --project Arak.PLL
 - **Task/Homework Tracker**: Assignment management with status tracking
 - **Event Calendar**: School-wide events, holidays, and exams
 - **Fees Management**: Financial records and payment tracking
-- **Attendance System**: Student attendance records (stub - in development)
+- **Attendance System**: Full attendance marking with upsert logic, TeacherId resolution from JWT, and TimeOnly-based time tracking
 - **User Management**: Admin account creation and role assignment
 
 ### 🛡️ Data Integrity & Security
@@ -703,7 +703,9 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 | Grade upload N+1 requests | 🟠 Planned | Control sheet sends 1 request per grade (needs batch endpoint) |
 | No JWT refresh token | 🟡 Planned | Hard 24h logout (possible data loss with unsaved forms) |
 | Chat feature | 🟡 Not Started | 0% implemented (needs SignalR) |
-| Attendance controller | 🟠 Stub | Returns empty list (service not implemented) |
+| Attendance service not implemented | ✅ Resolved | MarkAttendanceAsync fully implemented with upsert logic |
+| MarkAttendanceDto missing fields | ✅ Resolved | Added ClassId, Session; changed TimeSpan → TimeOnly |
+| AttendanceController TeacherId | ✅ Resolved | TeacherId now resolved from JWT ApplicationUserId claim |
 | Parent-Student circular dependency | ✅ Resolved | Frontend validation locks removed; ParentId is nullable |
 | Delete 500 crash on FK violations | ✅ Resolved | Global 409 middleware added in Program.cs |
 | Subject delete crashes linked Teachers | ✅ Resolved | SubjectService now unlinks teachers before deletion |
@@ -713,6 +715,14 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 ---
 
 ## 🔄 Changelog
+### v1.2.0 — April 20, 2026
+- ✅ `AttendanceService`: fully implemented `MarkAttendanceAsync` with upsert (create or update existing record)
+- ✅ `AttendanceDto`: `MarkAttendanceDto` now includes `ClassId` (required) and `Session` (optional)
+- ✅ `AttendanceDto`: `TimeIn` and `TimeOut` changed from `TimeSpan?` → `TimeOnly?` to match Entity
+- ✅ `AttendanceController`: `TeacherId` now resolved from JWT `ApplicationUserId` claim
+- ✅ `IAttendanceService`: `MarkAttendanceAsync` signature updated to accept `int teacherId`
+- ✅ `MakeTeacherIdNullable` migration applied — `TeacherId` is now nullable in `AttendanceRecord`
+
 ### v1.1.0 — April 2026
 - ✅ Added global `InvalidOperationException → 409 Conflict` middleware in `Program.cs`
 - ✅ `SubjectService`: auto-unlinks Teachers before subject deletion
