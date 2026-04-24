@@ -32,6 +32,7 @@ namespace ARAK.PLL.Controllers
         // ── GET /api/teachers ────────────────────────────────────────────────
         // Optional ?q=name search
         [HttpGet]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> GetAllAsync([FromQuery] string? q = null)
         {
             var query = _db.Teachers

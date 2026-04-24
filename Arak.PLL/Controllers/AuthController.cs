@@ -41,6 +41,7 @@ namespace Arak.PLL.Controllers
         /// Failure 401: { "message": "Invalid email or password" }
         /// </summary>
         [HttpPost("login")]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
         {
             if (!ModelState.IsValid)
