@@ -1,7 +1,11 @@
 using Arak.BLL.Service.Abstraction;
+using Arak.DAL.Database;
 using Arak.DAL.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Arak.PLL.Controllers
 {
@@ -16,10 +20,12 @@ namespace Arak.PLL.Controllers
     public class TasksController : ControllerBase
     {
         private readonly ITaskService _taskService;
+        private readonly AppDbContext _db;
 
-        public TasksController(ITaskService taskService)
+        public TasksController(ITaskService taskService, AppDbContext db)
         {
             _taskService = taskService;
+            _db = db;
         }
 
         // GET /api/tasks?teacherId=X&classId=Y&status=Pending
@@ -56,6 +62,29 @@ namespace Arak.PLL.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateAsync([FromBody] Assignment entity)
         {
+            if (entity == null)
+                return BadRequest(new { message = "Request body is required." });
+
+            var role = User.FindFirstValue(ClaimTypes.Role);
+
+            if (string.Equals(role, "Teacher", StringComparison.OrdinalIgnoreCase))
+            {
+                var appUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                             ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+                if (string.IsNullOrWhiteSpace(appUserId))
+                    return Unauthorized(new { message = "Invalid token claims." });
+
+                var teacher = await _db.Teachers
+                    .FirstOrDefaultAsync(t => t.ApplicationUser != null
+                                           && t.ApplicationUser.Id == appUserId);
+
+                if (teacher == null)
+                    return Unauthorized(new { message = "Teacher profile not found." });
+
+                entity.TeacherId = teacher.TeacherId;
+            }
+
             await _taskService.CreateAsync(entity);
             return CreatedAtRoute("GetTaskById", new { id = entity.Id }, entity);
         }

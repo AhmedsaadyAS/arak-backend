@@ -13,7 +13,6 @@ namespace Arak.PLL.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
     public class AttendanceController : ControllerBase
     {
         private readonly IAttendanceService _attendanceService;
@@ -26,6 +25,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> MarkAttendance([FromBody] MarkAttendanceDto dto)
         {
             try
@@ -82,7 +82,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpGet("class/{classId:int}")]
-        [Authorize(Roles = "Super Admin,Admin")]
+        [Authorize(Roles = "Super Admin,Admin,Teacher")]
         public async Task<IActionResult> GetClassAttendanceByDate(
             int classId, 
             [FromQuery] DateOnly? date = null)
@@ -103,7 +103,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpGet("summary/{classId:int}")]
-        [Authorize(Roles = "Super Admin,Admin")]
+        [Authorize(Roles = "Super Admin,Admin,Teacher")]
         public async Task<IActionResult> GetClassSummary(int classId, [FromQuery] DateOnly? date = null)
         {
             var targetDate = date ?? DateOnly.FromDateTime(DateTime.Today);

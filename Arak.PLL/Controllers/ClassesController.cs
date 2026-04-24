@@ -14,7 +14,6 @@ namespace ARAK.PLL.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
     public class ClassesController : ControllerBase
     {
         private readonly AppDbContext _db;
@@ -27,6 +26,7 @@ namespace ARAK.PLL.Controllers
         // ── GET /api/classes ─────────────────────────────────────────────────
         // Supports: ?stage=primary  |  ?teacherId=3
         [HttpGet]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher")]
         public async Task<IActionResult> GetAllAsync(
             [FromQuery] string? stage     = null,
             [FromQuery] int?    teacherId = null)
@@ -49,6 +49,7 @@ namespace ARAK.PLL.Controllers
 
         // ── GET /api/classes/{id} ────────────────────────────────────────────
         [HttpGet("{id:int}", Name = "GetClassById")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
             var cls = await _db.Classes
@@ -64,6 +65,7 @@ namespace ARAK.PLL.Controllers
 
         // ── POST /api/classes ────────────────────────────────────────────────
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> CreateAsync([FromBody] CreateClassDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -86,6 +88,7 @@ namespace ARAK.PLL.Controllers
 
         // ── PUT /api/classes/{id} ────────────────────────────────────────────
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> UpdateAsync(int id, [FromBody] CreateClassDto dto)
         {
             var cls = await _db.Classes.FindAsync(id);
@@ -105,6 +108,7 @@ namespace ARAK.PLL.Controllers
         // ── PATCH /api/classes/{id} ──────────────────────────────────────────
         // Used for: toggling gradesLocked, partial updates
         [HttpPatch("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> PatchAsync(int id, [FromBody] PatchClassDto dto)
         {
             var cls = await _db.Classes
@@ -126,6 +130,7 @@ namespace ARAK.PLL.Controllers
 
         // ── DELETE /api/classes/{id} ─────────────────────────────────────────
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
             var cls = await _db.Classes

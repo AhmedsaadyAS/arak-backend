@@ -8,7 +8,6 @@ namespace Arak.PLL.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
     public class SubjectsController : ControllerBase
     {
         private readonly ISubjectService _subjectService;
@@ -19,9 +18,11 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher,Parent")]
         public async Task<IActionResult> GetAllAsync() => Ok(await _subjectService.GetAllAsync());
 
         [HttpGet("{id:int}", Name = "GetSubjectById")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher,Parent")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
             var entity = await _subjectService.GetByIdAsync(id);
@@ -30,6 +31,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> CreateAsync([FromBody] Subject entity)
         {
             await _subjectService.CreateAsync(entity);
@@ -37,6 +39,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> UpdateAsync(int id, Subject entity)
         {
             if (id != entity.Id) return BadRequest("ID Mismatch");
@@ -45,6 +48,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
             var success = await _subjectService.DeleteAsync(id);

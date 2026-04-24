@@ -12,7 +12,6 @@ namespace Arak.PLL.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
     public class SchedulesController : ControllerBase
     {
         private readonly ITimetableService _timetableService;
@@ -24,6 +23,7 @@ namespace Arak.PLL.Controllers
 
         // GET /api/schedules?classId=X&teacherId=Y
         [HttpGet]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher,Parent")]
         public async Task<IActionResult> GetAllAsync(
             [FromQuery] int? classId   = null,
             [FromQuery] int? teacherId = null)
@@ -41,6 +41,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpGet("{id:int}", Name = "GetScheduleById")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher,Parent")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
             var entity = await _timetableService.GetByIdAsync(id);
@@ -49,6 +50,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> CreateAsync([FromBody] TimeTable entity)
         {
             var created = await _timetableService.AddLesson(entity);
@@ -56,6 +58,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> UpdateAsync(int id, [FromBody] TimeTable entity)
         {
             if (id != entity.Id) return BadRequest(new { message = "ID mismatch." });
@@ -64,6 +67,7 @@ namespace Arak.PLL.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
             var success = await _timetableService.DeleteAsync(id);
