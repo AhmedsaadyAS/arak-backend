@@ -1,5 +1,6 @@
 using Arak.BLL.DTOs;
 using Arak.BLL.Service.Abstraction;
+using Arak.DAL.Database;
 using Arak.DAL.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,12 @@ namespace ARAK.PLL.Controllers
     public class StudentsController : ControllerBase
     {
         private readonly IStudentService _studentService;
+        private readonly AppDbContext _context;
 
-        public StudentsController(IStudentService studentService)
+        public StudentsController(IStudentService studentService, AppDbContext context)
         {
             _studentService = studentService;
+            _context = context;
         }
 
         /// <summary>
@@ -26,12 +29,12 @@ namespace ARAK.PLL.Controllers
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetAllStudents(
-            [FromQuery] int    _page     = 1,
-            [FromQuery] int    _per_page = 20,
-            [FromQuery] string? q        = null,
-            [FromQuery] string? grade    = null,
-            [FromQuery] string? status   = null,
-            [FromQuery] int?    classId  = null)
+            [FromQuery] int _page = 1,
+            [FromQuery] int _per_page = 20,
+            [FromQuery] string? q = null,
+            [FromQuery] string? grade = null,
+            [FromQuery] string? status = null,
+            [FromQuery] int? classId = null)
         {
             var (students, total) = await _studentService.GetPagedAsync(
                 _page, _per_page, q, grade, status, classId);
@@ -41,9 +44,9 @@ namespace ARAK.PLL.Controllers
 
             return Ok(new PagedResult<StudentDto>
             {
-                Data     = dtos,
-                Total    = total,
-                Page     = _page,
+                Data = dtos,
+                Total = total,
+                Page = _page,
                 PageSize = _per_page
             });
         }
@@ -91,21 +94,21 @@ namespace ARAK.PLL.Controllers
         {
             var student = new Student
             {
-                StudentCode  = dto.StudentId,
-                Name         = dto.Name,
-                UserName     = dto.UserName,
-                Age          = dto.Age,
-                Email        = dto.Email,
-                DateOfBirth  = string.IsNullOrWhiteSpace(dto.DateOfBirth) ? DateTime.MinValue : DateTime.Parse(dto.DateOfBirth),
+                StudentCode = dto.StudentId,
+                Name = dto.Name,
+                UserName = dto.UserName,
+                Age = dto.Age,
+                Email = dto.Email,
+                DateOfBirth = string.IsNullOrWhiteSpace(dto.DateOfBirth) ? DateTime.MinValue : DateTime.Parse(dto.DateOfBirth),
                 PlaceOfBirth = dto.PlaceOfBirth,
-                Address      = dto.Address,
-                City         = dto.City,
-                PhoneNumber  = dto.PhoneNumber,
-                Grade        = dto.Grade,
-                Status       = dto.Status,
-                Image        = dto.Image,
-                ClassId      = dto.ClassId,
-                ParentId     = dto.ParentId
+                Address = dto.Address,
+                City = dto.City,
+                PhoneNumber = dto.PhoneNumber,
+                Grade = dto.Grade,
+                Status = dto.Status,
+                Image = dto.Image,
+                ClassId = dto.ClassId,
+                ParentId = dto.ParentId
             };
 
             var created = await _studentService.CreateAsync(student);
@@ -113,10 +116,32 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateAsync(int id, Student student)
+        public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdateStudentDto dto)
         {
-            if (id != student.Id)
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (id != dto.Id)
                 return BadRequest(new { message = "URL id does not match body id." });
+
+            var student = new Student
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                UserName = dto.UserName,
+                Age = dto.Age,
+                Email = dto.Email,
+                DateOfBirth = string.IsNullOrWhiteSpace(dto.DateOfBirth) ? DateTime.MinValue : DateTime.Parse(dto.DateOfBirth),
+                PlaceOfBirth = dto.PlaceOfBirth,
+                Address = dto.Address,
+                City = dto.City,
+                PhoneNumber = dto.PhoneNumber,
+                Grade = dto.Grade,
+                Status = dto.Status,
+                Image = dto.Image,
+                ClassId = dto.ClassId,
+                ParentId = dto.ParentId,
+            };
 
             var updated = await _studentService.UpdateAsync(student);
             return Ok(MapToDto(updated));
@@ -132,31 +157,48 @@ namespace ARAK.PLL.Controllers
             return Ok(new { message = "Student deleted successfully." });
         }
 
+        [HttpDelete("{id:int}/force")]
+        [Authorize(Roles = "Super Admin,Admin")]
+        public async Task<IActionResult> ForceDeleteAsync(int id)
+        {
+            var student = await _context.Students.FindAsync(id);
+            if (student is null) return NotFound();
+
+            _context.AttendanceRecords.RemoveRange(
+                _context.AttendanceRecords.Where(a => a.StudentId == id));
+            _context.Evaluations.RemoveRange(
+                _context.Evaluations.Where(e => e.StudentId == id));
+            _context.Students.Remove(student);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         // ── Private helpers ───────────────────────────────────────────────
 
         private static StudentDto MapToDto(Student s) => new()
         {
-            Id          = s.Id,
-            StudentId   = s.StudentCode,          // rename for frontend contract
-            Name        = s.Name,
-            UserName    = s.UserName,
-            Age         = s.Age,
-            Email       = s.Email,
+            Id = s.Id,
+            StudentId = s.StudentCode,          // rename for frontend contract
+            Name = s.Name,
+            UserName = s.UserName,
+            Age = s.Age,
+            Email = s.Email,
             DateOfBirth = s.DateOfBirth.ToString("yyyy-MM-dd"),
-            PlaceOfBirth= s.PlaceOfBirth,
-            Address     = s.Address,
-            City        = s.City,
+            PlaceOfBirth = s.PlaceOfBirth,
+            Address = s.Address,
+            City = s.City,
             PhoneNumber = s.PhoneNumber,
-            Grade       = s.Grade,
-            Status      = s.Status,
-            Image       = s.Image,
-            ClassId     = s.ClassId,
-            ParentId    = s.ParentId,
+            Grade = s.Grade,
+            Status = s.Status,
+            Image = s.Image,
+            ClassId = s.ClassId,
+            ParentId = s.ParentId,
             // Navigation properties are not eagerly loaded from generic repo —
             // ClassName / ParentName will be null unless we load them. 
             // A future enhancement can use Include() on dedicated queries.
-            ClassName   = null,
-            ParentName  = null,
+            ClassName = null,
+            ParentName = null,
         };
     }
 }

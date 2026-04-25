@@ -19,8 +19,8 @@ namespace Arak.BLL.Service.Implementation
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration)
         {
-            _userManager    = userManager;
-            _configuration  = configuration;
+            _userManager = userManager;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -67,19 +67,19 @@ namespace Arak.BLL.Service.Implementation
                 // JWT signing key must be at least 256 bits (32 bytes) for HMAC-SHA256
                 throw new InvalidOperationException("Jwt:Key configuration is missing or too short (minimum 32 characters).");
             }
-            var issuer         = _configuration["Jwt:Issuer"]!;
-            var audience       = _configuration["Jwt:Audience"]!;
+            var issuer = _configuration["Jwt:Issuer"]!;
+            var audience = _configuration["Jwt:Audience"]!;
             var expirationHours = int.TryParse(_configuration["Jwt:ExpirationHours"], out var h) ? h : 24;
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
-            var expiration  = DateTime.UtcNow.AddHours(expirationHours);
+            var expiration = DateTime.UtcNow.AddHours(expirationHours);
 
             var token = new JwtSecurityToken(
-                issuer:             issuer,
-                audience:           audience,
-                claims:             claims,
-                expires:            expiration,
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: expiration,
                 signingCredentials: credentials
             );
 
@@ -91,14 +91,14 @@ namespace Arak.BLL.Service.Implementation
             // 7. Return the full response DTO that matches BACKEND.md login response shape
             return new AuthResponseDto
             {
-                Token      = tokenString,
+                Token = tokenString,
                 Expiration = expiration,
                 // These flat fields are wrapped into a "user" object by the controller
-                UserId     = 0, // Identity uses string ID; controller can parse it
-                Name       = user.Name ?? user.UserName ?? string.Empty,
-                Email      = user.Email!,
-                Role       = primaryRole,   // String name — critical for frontend RBAC
-                Avatar     = avatar,
+                UserId = int.TryParse(user.Id, out var uid) ? uid : 0,
+                Name = user.Name ?? user.UserName ?? string.Empty,
+                Email = user.Email!,
+                Role = primaryRole,   // String name — critical for frontend RBAC
+                Avatar = avatar,
             };
         }
 
