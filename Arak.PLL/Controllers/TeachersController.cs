@@ -15,7 +15,7 @@ namespace ARAK.PLL.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
+    [Authorize] // Generic authorize to ensure user is logged in, role specific rules are on methods
     public class TeachersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -58,6 +58,7 @@ namespace ARAK.PLL.Controllers
 
         // ── GET /api/teachers/{id} ───────────────────────────────────────────
         [HttpGet("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
             var teacher = await _db.Teachers
@@ -73,8 +74,47 @@ namespace ARAK.PLL.Controllers
             return Ok(MapToDto(teacher, id));
         }
 
+        // ── GET /api/teachers/me ────────────────────────────────────────────
+        [HttpGet("me")]
+        [Authorize(Roles = "Teacher")]
+        public async Task<IActionResult> GetMyProfileAsync()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "User claim not found." });
+
+            var teacher = await _db.Teachers
+                .Include(t => t.ApplicationUser)
+                .Include(t => t.Subject)
+                .Include(t => t.Classes)
+                    .ThenInclude(tc => tc.Class)
+                .FirstOrDefaultAsync(t => t.ApplicationUser != null && t.ApplicationUser.Id == userId);
+
+            if (teacher == null)
+                return NotFound(new { message = "No teacher profile linked to this account." });
+
+            return Ok(new
+            {
+                teacherId       = teacher.TeacherId,
+                name            = teacher.ApplicationUser?.Name ?? "",
+                email           = teacher.ApplicationUser?.Email ?? "",
+                phone           = teacher.ApplicationUser?.PhoneNumber,
+                subject         = teacher.Subject?.Name ?? "",
+                subjectId       = teacher.SubjectId,
+                assignedClasses = teacher.Classes?.Select(tc => new
+                {
+                    classId   = tc.ClassId,
+                    className = tc.Class?.Name ?? ""
+                }).ToList(),
+                todayClassesCount = 0,
+                hasNewTasks       = false,
+                performance       = 0.0
+            });
+        }
+
         // ── POST /api/teachers ───────────────────────────────────────────────
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> CreateAsync([FromBody] TeacherDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Email))
@@ -138,6 +178,7 @@ namespace ARAK.PLL.Controllers
 
         // ── PUT /api/teachers/{id} ───────────────────────────────────────────
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> UpdateAsync(int id, [FromBody] TeacherDto dto)
         {
             var teacher = await _db.Teachers
@@ -148,21 +189,29 @@ namespace ARAK.PLL.Controllers
 
             if (teacher.ApplicationUser != null)
             {
-                teacher.ApplicationUser.Name        = dto.Name;
-                teacher.ApplicationUser.Email       = dto.Email;
-                teacher.ApplicationUser.UserName    = dto.Email;
-                teacher.ApplicationUser.PhoneNumber = dto.PhoneNumber;
-                teacher.ApplicationUser.Address     = dto.Address;
+                if (!string.IsNullOrEmpty(dto.Name))
+                    teacher.ApplicationUser.Name = dto.Name;
+                if (!string.IsNullOrEmpty(dto.Email))
+                {
+                    teacher.ApplicationUser.Email    = dto.Email;
+                    teacher.ApplicationUser.UserName = dto.Email;
+                }
+                if (!string.IsNullOrEmpty(dto.PhoneNumber))
+                    teacher.ApplicationUser.PhoneNumber = dto.PhoneNumber;
+                if (!string.IsNullOrEmpty(dto.Address))
+                    teacher.ApplicationUser.Address = dto.Address;
                 await _userManager.UpdateAsync(teacher.ApplicationUser);
             }
 
-            int? subjectId = dto.SubjectId;
-            if (subjectId == null && !string.IsNullOrEmpty(dto.Subject))
+            if (dto.SubjectId.HasValue)
+            {
+                teacher.SubjectId = dto.SubjectId;
+            }
+            else if (!string.IsNullOrEmpty(dto.Subject))
             {
                 var s = await _db.Subjects.FirstOrDefaultAsync(x => x.Name == dto.Subject);
-                subjectId = s?.Id;
+                if (s != null) teacher.SubjectId = s.Id;
             }
-            teacher.SubjectId = subjectId;
 
             await _db.SaveChangesAsync();
             return Ok(MapToDto(teacher, id));
@@ -172,6 +221,7 @@ namespace ARAK.PLL.Controllers
         // Handles partial updates — primarily used by scheduleService.js
         // to keep teacher.assignedClasses in sync when schedules are added/removed.
         [HttpPatch("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> PatchAsync(int id, [FromBody] PatchTeacherDto dto)
         {
             var teacher = await _db.Teachers
@@ -221,6 +271,7 @@ namespace ARAK.PLL.Controllers
 
         // ── DELETE /api/teachers/{id} ────────────────────────────────────────
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
             var teacher = await _db.Teachers

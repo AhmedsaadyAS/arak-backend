@@ -62,12 +62,17 @@ namespace Arak.PLL.Controllers
                 return Ok(dtos);
             }
 
+            var adminRoleNames = new HashSet<string> { "Super Admin", "Admin", "Academic Admin", "Fees Admin", "Users Admin" };
             var allUsers = await query.ToListAsync();
             var allDtos = new List<UserDto>();
             foreach (var u in allUsers)
             {
                 var roles = await _userManager.GetRolesAsync(u);
-                allDtos.Add(MapToDto(u, roles.FirstOrDefault()));
+                // Only include users who have at least one admin-level role
+                if (roles.Any(r => adminRoleNames.Contains(r)))
+                {
+                    allDtos.Add(MapToDto(u, roles.FirstOrDefault(r => adminRoleNames.Contains(r)) ?? roles.FirstOrDefault()));
+                }
             }
             return Ok(allDtos);
         }

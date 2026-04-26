@@ -117,11 +117,17 @@ namespace ARAK.PLL.Controllers
 
             if (parent.ApplicationUser != null)
             {
-                parent.ApplicationUser.Name        = dto.Name;
-                parent.ApplicationUser.Email       = dto.Email;
-                parent.ApplicationUser.UserName    = dto.Email;
-                parent.ApplicationUser.PhoneNumber = dto.Phone;
-                parent.ApplicationUser.Address     = dto.Address;
+                if (!string.IsNullOrEmpty(dto.Name))
+                    parent.ApplicationUser.Name = dto.Name;
+                if (!string.IsNullOrEmpty(dto.Email))
+                {
+                    parent.ApplicationUser.Email    = dto.Email;
+                    parent.ApplicationUser.UserName = dto.Email;
+                }
+                if (!string.IsNullOrEmpty(dto.Phone))
+                    parent.ApplicationUser.PhoneNumber = dto.Phone;
+                if (!string.IsNullOrEmpty(dto.Address))
+                    parent.ApplicationUser.Address = dto.Address;
                 await _userManager.UpdateAsync(parent.ApplicationUser);
             }
 
@@ -141,6 +147,10 @@ namespace ARAK.PLL.Controllers
 
             try
             {
+                // 0. Check for linked students — return 409 if any exist
+                if (parent.Students != null && parent.Students.Any())
+                    return Conflict(new { message = $"Cannot delete parent {id}: {parent.Students.Count} student(s) are linked. Reassign or remove students first." });
+
                 // 1. Unlink dependent students (set ParentId = null) instead of deleting
                 if (parent.Students != null)
                 {

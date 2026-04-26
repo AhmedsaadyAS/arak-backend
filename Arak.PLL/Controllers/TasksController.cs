@@ -16,7 +16,7 @@ namespace Arak.PLL.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher")]
+    [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher,Parent")]
     public class TasksController : ControllerBase
     {
         private readonly ITaskService _taskService;
@@ -28,11 +28,12 @@ namespace Arak.PLL.Controllers
             _db = db;
         }
 
-        // GET /api/tasks?teacherId=X&classId=Y&status=Pending
+        // GET /api/tasks?teacherId=X&classId=Y&studentId=Z&status=Pending
         [HttpGet]
         public async Task<IActionResult> GetAllAsync(
             [FromQuery] int?    teacherId = null,
             [FromQuery] int?    classId   = null,
+            [FromQuery] int?    studentId = null,
             [FromQuery] string? status    = null)
         {
             var all = await _taskService.GetAllAsync();
@@ -42,6 +43,16 @@ namespace Arak.PLL.Controllers
 
             if (classId.HasValue)
                 all = all.Where(t => t.ClassId == classId.Value);
+
+            // studentId filter: resolve student's classId, then filter tasks by that class
+            if (studentId.HasValue)
+            {
+                var student = await _db.Students.FindAsync(studentId.Value);
+                if (student != null && student.ClassId.HasValue)
+                    all = all.Where(t => t.ClassId == student.ClassId.Value);
+                else
+                    all = Enumerable.Empty<Arak.DAL.Entities.Assignment>();
+            }
 
             // Assignment entity uses "State" field (not "Status")
             if (!string.IsNullOrWhiteSpace(status))

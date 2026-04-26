@@ -14,7 +14,7 @@ namespace Arak.PLL.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher")]
+    [Authorize(Roles = "Super Admin,Admin,Academic Admin,Teacher,Parent")]
     public class EvaluationsController : ControllerBase
     {
         private readonly IEvaluationService _evaluationService;
