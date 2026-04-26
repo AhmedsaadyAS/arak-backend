@@ -121,29 +121,28 @@ namespace ARAK.PLL.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (id != dto.Id)
-                return BadRequest(new { message = "URL id does not match body id." });
+            var existing = await _studentService.GetStudentsByIdAsync(id);
+            if (existing == null)
+                return NotFound(new { message = $"Student {id} not found." });
 
-            var student = new Student
-            {
-                Id = dto.Id,
-                Name = dto.Name,
-                UserName = dto.UserName,
-                Age = dto.Age,
-                Email = dto.Email,
-                DateOfBirth = string.IsNullOrWhiteSpace(dto.DateOfBirth) ? DateTime.MinValue : DateTime.Parse(dto.DateOfBirth),
-                PlaceOfBirth = dto.PlaceOfBirth,
-                Address = dto.Address,
-                City = dto.City,
-                PhoneNumber = dto.PhoneNumber,
-                Grade = dto.Grade,
-                Status = dto.Status,
-                Image = dto.Image,
-                ClassId = dto.ClassId,
-                ParentId = dto.ParentId,
-            };
+            // Only update fields that are provided (not empty/default)
+            if (!string.IsNullOrEmpty(dto.Name))         existing.Name         = dto.Name;
+            if (!string.IsNullOrEmpty(dto.UserName))     existing.UserName     = dto.UserName;
+            if (!string.IsNullOrEmpty(dto.Email))        existing.Email        = dto.Email;
+            if (!string.IsNullOrEmpty(dto.PhoneNumber))  existing.PhoneNumber  = dto.PhoneNumber;
+            if (!string.IsNullOrEmpty(dto.Address))      existing.Address      = dto.Address;
+            if (!string.IsNullOrEmpty(dto.City))         existing.City         = dto.City;
+            if (!string.IsNullOrEmpty(dto.Grade))        existing.Grade        = dto.Grade;
+            if (!string.IsNullOrEmpty(dto.Status))       existing.Status       = dto.Status;
+            if (!string.IsNullOrEmpty(dto.DateOfBirth))  existing.DateOfBirth  = DateTime.Parse(dto.DateOfBirth);
+            if (!string.IsNullOrEmpty(dto.PlaceOfBirth)) existing.PlaceOfBirth = dto.PlaceOfBirth;
+            if (dto.Image != null)                       existing.Image        = dto.Image;
+            if (dto.Age > 0)                             existing.Age          = dto.Age;
+            if (dto.ClassId.HasValue)                    existing.ClassId      = dto.ClassId;
+            // Allow setting ParentId to null (unlinking parent)
+            existing.ParentId = dto.ParentId;
 
-            var updated = await _studentService.UpdateAsync(student);
+            var updated = await _studentService.UpdateAsync(existing);
             return Ok(MapToDto(updated));
         }
 
