@@ -15,7 +15,6 @@ namespace Arak.BLL.DTOs
         public string? Subject        { get; init; }
         public string? Department     { get; init; }
         public int?    Experience     { get; init; }
-        public string? City           { get; init; }
         public int?    SubjectId      { get; init; }
         /// <summary>
         /// IDs of classes assigned to this teacher via TeacherClass junction table.

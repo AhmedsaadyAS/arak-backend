@@ -327,7 +327,6 @@ namespace ARAK.PLL.Controllers
                 SubjectId      = t.SubjectId,
                 Department     = null,
                 Experience     = null,
-                City           = null,
                 // Resolve assignedClasses from the TeacherClass junction table
                 AssignedClasses = t.Classes?.Select(tc => tc.ClassId).ToArray() ?? [],
             };
