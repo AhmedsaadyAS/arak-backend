@@ -213,6 +213,9 @@ namespace ARAK.PLL.Controllers
                 if (s != null) teacher.SubjectId = s.Id;
             }
 
+            if (dto.Image != null)
+                teacher.Image = dto.Image;
+
             await _db.SaveChangesAsync();
             return Ok(MapToDto(teacher, id));
         }
@@ -325,6 +328,7 @@ namespace ARAK.PLL.Controllers
                 Address        = user?.Address     ?? null,
                 Subject        = t.Subject?.Name   ?? null,
                 SubjectId      = t.SubjectId,
+                Image          = t.Image,
                 Department     = null,
                 Experience     = null,
                 // Resolve assignedClasses from the TeacherClass junction table

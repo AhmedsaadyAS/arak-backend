@@ -16,6 +16,7 @@ namespace Arak.BLL.DTOs
         public string? Department     { get; init; }
         public int?    Experience     { get; init; }
         public int?    SubjectId      { get; init; }
+        public string? Image          { get; init; }
         /// <summary>
         /// IDs of classes assigned to this teacher via TeacherClass junction table.
         /// The frontend scheduleService.js reads and patches this field.

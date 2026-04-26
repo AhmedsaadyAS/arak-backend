@@ -163,6 +163,7 @@ namespace Arak.PLL
             }
 
             // ── Pipeline order (CRITICAL — do NOT reorder!) ───────────────────
+            app.UseStaticFiles();               // Serve wwwroot (uploaded images)
             app.UseCors("AllowFrontend");       // 1. CORS — before auth
             if (!app.Environment.IsDevelopment())
                 app.UseHttpsRedirection();       // 2. Force HTTPS (production only)

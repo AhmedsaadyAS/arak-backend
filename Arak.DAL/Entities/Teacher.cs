@@ -26,5 +26,6 @@ namespace Arak.DAL.Entities
         public ICollection<TeacherSemester> Semesters { get; set; } = new List<TeacherSemester>();
         [JsonIgnore]
         public ApplicationUser? ApplicationUser { get; set; }
+        public string? Image { get; set; }
 	}
 }
