@@ -164,9 +164,10 @@ namespace Arak.PLL.Controllers
 
                 // The Teacher/Parent/Admin tables reference ApplicationUsers via shadow FK "ApplicationUserId".
                 // DeleteBehavior.Restrict blocks direct deletion — so we must remove dependents first.
-                // Using raw SQL to query shadow FK column directly (EF navigation props need Include to load).
+                // IMPORTANT: Do NOT call UserManager methods (IsInRoleAsync, GetRolesAsync, DeleteAsync)
+                // inside the transaction after raw SQL mutations — it causes optimistic concurrency failures
+                // because the EF change tracker's ConcurrencyStamp is stale.
 
-                // Begin transaction to ensure atomicity
                 await using var transaction = await _db.Database.BeginTransactionAsync();
 
                 // 1. Find and remove Teacher + its junction rows
@@ -189,7 +190,6 @@ namespace Arak.PLL.Controllers
 
                 foreach (var pid in parentIds)
                 {
-                    // Unlink students (set ParentId = NULL) rather than delete them
                     await _db.Database.ExecuteSqlRawAsync($"UPDATE Students SET ParentId = NULL WHERE ParentId = {pid}");
                     await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Parents WHERE ParentId = {pid}");
                 }
@@ -197,40 +197,19 @@ namespace Arak.PLL.Controllers
                 // 3. Remove Admin domain row
                 await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Admins WHERE ApplicationUserId = '{id}'");
 
-                // 3.1. Remove any Admin-specific roles
-                var adminRoles = new[] { "Super Admin", "Admin", "Academic Admin", "Fees Admin", "Users Admin" };
-                foreach (var role in adminRoles)
-                {
-                    if (await _userManager.IsInRoleAsync(user, role))
-                    {
-                        await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserRoles WHERE UserId = '{id}' AND RoleId = (SELECT Id FROM AspNetRoles WHERE Name = '{role}')");
-                    }
-                }
-
-                // 3.5. Only delete Identity user if no other roles remain
-                var remainingRoles = await _userManager.GetRolesAsync(user);
-                if (!remainingRoles.Any())
-                {
-                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserRoles WHERE UserId = '{id}'");
-                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserClaims WHERE UserId = '{id}'");
-                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserLogins WHERE UserId = '{id}'");
-                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserTokens WHERE UserId = '{id}'");
-
-                    var result = await _userManager.DeleteAsync(user);
-                    if (!result.Succeeded)
-                    {
-                        await transaction.RollbackAsync();
-                        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                        return StatusCode(500, new { message = "Failed to delete user.", errors });
-                    }
-                }
+                // 4. Remove ALL Identity rows via raw SQL — avoids stale ConcurrencyStamp issues
+                //    that occur when calling UserManager APIs after raw SQL mutations inside a transaction.
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserRoles WHERE UserId = '{id}'");
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserClaims WHERE UserId = '{id}'");
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserLogins WHERE UserId = '{id}'");
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUserTokens WHERE UserId = '{id}'");
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM AspNetUsers WHERE Id = '{id}'");
 
                 await transaction.CommitAsync();
                 return Ok(new { message = "User deleted." });
             }
             catch (Exception ex)
             {
-                // Log exception details (could be enhanced with proper logging framework)
                 return StatusCode(500, new { message = "An error occurred while deleting the user.", error = ex.Message });
             }
         }
