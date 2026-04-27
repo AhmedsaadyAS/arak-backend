@@ -37,6 +37,10 @@ namespace Arak.DAL.Database
                 new Gender { Id = 1, Name = "Male" },
                 new Gender { Id = 2, Name = "Female" }
             );
+
+            // Composite index for fast conversation queries.
+            modelBuilder.Entity<Message>()
+                .HasIndex(m => new { m.SenderId, m.ReceiverId, m.SentAt });
         }
 
         // ── Identity ──────────────────────────────────────────────────────────
@@ -70,5 +74,6 @@ namespace Arak.DAL.Database
         public DbSet<ArakEvent> Events { get; set; }
         public DbSet<Fee> Fees { get; set; }
         public DbSet<Evaluation> Evaluations { get; set; }
-    }
+		public DbSet<Message> Messages { get; set; }
+	}
 }

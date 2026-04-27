@@ -133,9 +133,10 @@ namespace Arak.PLL
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddScoped<IStudentRepository, StudentRepository>();
             builder.Services.AddScoped<ITimetableRepository, TimetableRepository>();
+			builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
-            // ── 8. Services ───────────────────────────────────────────────────
-            builder.Services.AddScoped<IStudentService, StudentService>();
+			// ── 8. Services ───────────────────────────────────────────────────
+			builder.Services.AddScoped<IStudentService, StudentService>();
             builder.Services.AddScoped<ITimetableService, TimetableService>();
             builder.Services.AddScoped<IAuthService, AuthService>();   // ← NEW
             builder.Services.AddScoped<IClassService, ClassService>();
@@ -147,9 +148,10 @@ namespace Arak.PLL
             builder.Services.AddScoped<ITaskService, TaskService>();
             builder.Services.AddScoped<IEvaluationService, EvaluationService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+			builder.Services.AddScoped<IMessageService, MessageService>();
 
-            // ══════════════════════════════════════════════════════════════════
-            var app = builder.Build();
+			// ══════════════════════════════════════════════════════════════════
+			var app = builder.Build();
             // ══════════════════════════════════════════════════════════════════
 
             // ── Step 4: Seed Database ─────────────────────────────────────────
