@@ -37,6 +37,51 @@ namespace ARAK.PLL.Controllers
 
             return Ok(parents.Select(MapToDto));
         }
+        // ── GET /api/parents/me ────────────────────────────────────────────
+        [HttpGet("me")]
+        [Authorize(Roles = "Parent")]
+        public async Task<IActionResult> GetMyProfileAsync()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "User claim not found." });
+         
+            var parent = await _db.Parents
+                .Include(p => p.ApplicationUser)
+                .Include(p => p.Students)
+                    .ThenInclude(s => s.Class)
+                .FirstOrDefaultAsync(p => p.ApplicationUser != null && p.ApplicationUser.Id == userId);
+         
+            if (parent == null)
+                return NotFound(new { message = "No parent profile linked to this account." });
+         
+            var user = parent.ApplicationUser;
+         
+            return Ok(new
+            {
+                id                    = parent.ParentId,
+                name                  = user?.Name ?? "",
+                email                 = user?.Email ?? "",
+                phoneNumber           = user?.PhoneNumber,
+                address               = user?.Address,
+                performancePercentage = 0.0,
+                students = parent.Students?.Select(s => (object)new
+                {
+                    id              = s.Id,
+                    name            = s.Name,
+                    grade           = s.ClassId ?? 0,
+                    class_number    = s.ClassId ?? 0,
+                    className       = s.Class?.Name ?? s.Grade,
+                    profile_image   = s.Image,
+                    parent_username = user?.Email ?? "",
+                    is_verified     = true,
+                    status          = s.Status,
+                    phoneNumber     = s.PhoneNumber,
+                    email           = s.Email,
+                    image           = s.Image,
+                }).ToList() ?? new List<object>()
+            });
+        }
 
         [HttpGet("{id:int}", Name = "GetParentById")]
         public async Task<IActionResult> GetByIdAsync(int id)
@@ -123,6 +168,14 @@ namespace ARAK.PLL.Controllers
                 {
                     parent.ApplicationUser.Email    = dto.Email;
                     parent.ApplicationUser.UserName = dto.Email;
+                    await _userManager.UpdateNormalizedEmailAsync(parent.ApplicationUser);
+                    await _userManager.UpdateNormalizedUserNameAsync(parent.ApplicationUser);
+                }
+                else
+                {
+                    // Keep existing UserName — don't overwrite with null
+                    // Just normalize what's already there
+                    await _userManager.UpdateNormalizedUserNameAsync(parent.ApplicationUser);
                 }
                 if (!string.IsNullOrEmpty(dto.Phone))
                     parent.ApplicationUser.PhoneNumber = dto.Phone;

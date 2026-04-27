@@ -197,7 +197,6 @@ namespace Arak.PLL
             });
 
             app.MapControllers();
-
             app.Run();
         }
     }
