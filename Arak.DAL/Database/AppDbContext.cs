@@ -75,5 +75,6 @@ namespace Arak.DAL.Database
         public DbSet<Fee> Fees { get; set; }
         public DbSet<Evaluation> Evaluations { get; set; }
 		public DbSet<Message> Messages { get; set; }
+		public DbSet<TaskSubmission> TaskSubmissions { get; set; }
 	}
 }

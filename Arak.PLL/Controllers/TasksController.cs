@@ -115,5 +115,92 @@ namespace Arak.PLL.Controllers
             if (!success) return NotFound();
             return Ok(new { message = "Task deleted." });
         }
+
+        // ── GET /api/tasks/{taskId}/status ────────────────────────────────────
+        // Returns all students in the task's class with their submission status.
+        // If no TaskSubmission rows exist yet, auto-generates them as "Pending".
+        [HttpGet("{taskId:int}/status")]
+        public async Task<IActionResult> GetTaskStatusAsync(int taskId)
+        {
+            var task = await _db.Assignments.FindAsync(taskId);
+            if (task == null)
+                return NotFound(new { message = $"Task {taskId} not found." });
+
+            if (!task.ClassId.HasValue)
+                return BadRequest(new { message = "Task has no class assigned." });
+
+            // Get all students in the class
+            var students = await _db.Students
+                .Where(s => s.ClassId == task.ClassId.Value)
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            // Get existing submission records
+            var submissions = await _db.TaskSubmissions
+                .Where(ts => ts.TaskId == taskId)
+                .ToListAsync();
+
+            // Build response — merge students with their submission status
+            var result = students.Select(s =>
+            {
+                var sub = submissions.FirstOrDefault(x => x.StudentId == s.Id);
+                return new
+                {
+                    taskId      = taskId.ToString(),
+                    studentId   = s.Id.ToString(),
+                    studentName = s.Name,
+                    isDone      = sub?.IsDone ?? false,
+                };
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        // ── PUT /api/tasks/{taskId}/status ────────────────────────────────────
+        // Bulk upsert submission statuses for a task.
+        // Request body: [ { "studentId": "5", "isDone": true }, ... ]
+        [HttpPut("{taskId:int}/status")]
+        public async Task<IActionResult> UpdateTaskStatusAsync(
+            int taskId,
+            [FromBody] List<TaskStatusUpdateDto> updates)
+        {
+            var task = await _db.Assignments.FindAsync(taskId);
+            if (task == null)
+                return NotFound(new { message = $"Task {taskId} not found." });
+
+            foreach (var update in updates)
+            {
+                if (!int.TryParse(update.StudentId, out var studentId))
+                    continue;
+
+                var existing = await _db.TaskSubmissions
+                    .FirstOrDefaultAsync(ts => ts.TaskId == taskId && ts.StudentId == studentId);
+
+                if (existing != null)
+                {
+                    existing.IsDone      = update.IsDone;
+                    existing.SubmittedAt = update.IsDone ? DateTime.UtcNow : null;
+                }
+                else
+                {
+                    _db.TaskSubmissions.Add(new TaskSubmission
+                    {
+                        TaskId      = taskId,
+                        StudentId   = studentId,
+                        IsDone      = update.IsDone,
+                        SubmittedAt = update.IsDone ? DateTime.UtcNow : null,
+                    });
+                }
+            }
+
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Task statuses updated." });
+        }
+    }
+
+    public class TaskStatusUpdateDto
+    {
+        public string StudentId { get; set; } = string.Empty;
+        public bool IsDone { get; set; }
     }
 }
