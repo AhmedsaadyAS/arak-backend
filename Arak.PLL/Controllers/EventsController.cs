@@ -14,11 +14,13 @@ namespace Arak.PLL.Controllers
     public class EventsController : ControllerBase
     {
         private readonly IEventService _eventService;
+        private readonly INotificationService _notificationService;
         private readonly AppDbContext _context;
 
-        public EventsController(IEventService eventService, AppDbContext context)
+        public EventsController(IEventService eventService, INotificationService notificationService, AppDbContext context)
         {
             _eventService = eventService;
+            _notificationService = notificationService;
             _context = context;
         }
 
@@ -52,6 +54,29 @@ namespace Arak.PLL.Controllers
         public async Task<IActionResult> CreateAsync([FromBody] ArakEvent entity)
         {
             await _eventService.CreateAsync(entity);
+
+            // ── Announcement Fanout ──
+            if (entity.ClassId.HasValue)
+            {
+                var parentUserIds = await _context.Students
+                    .Include(s => s.Parent)
+                    .ThenInclude(p => p.ApplicationUser)
+                    .Where(s => s.ClassId == entity.ClassId.Value && s.Parent != null && s.Parent.ApplicationUser != null)
+                    .Select(s => s.Parent!.ApplicationUser!.Id)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var pId in parentUserIds)
+                {
+                    _ = _notificationService.SendAsync(
+                        recipientUserId: pId,
+                        title: "New School Event",
+                        body: $"An event '{entity.Title}' has been scheduled for {entity.Date:MMM dd}.",
+                        type: "Announcement",
+                        referenceId: entity.Id);
+                }
+            }
+
             return CreatedAtRoute("GetEventById", new { id = entity.Id }, entity);
         }
 

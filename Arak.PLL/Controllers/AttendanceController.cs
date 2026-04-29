@@ -16,11 +16,13 @@ namespace Arak.PLL.Controllers
     public class AttendanceController : ControllerBase
     {
         private readonly IAttendanceService _attendanceService;
+        private readonly INotificationService _notificationService;
         private readonly AppDbContext _context;
 
-        public AttendanceController(IAttendanceService attendanceService, AppDbContext context)
+        public AttendanceController(IAttendanceService attendanceService, INotificationService notificationService, AppDbContext context)
         {
             _attendanceService = attendanceService;
+            _notificationService = notificationService;
             _context = context;
         }
 
@@ -72,6 +74,31 @@ namespace Arak.PLL.Controllers
 
                 // 3. Upsert Records
                 var count = await _attendanceService.BulkMarkAttendanceAsync(dto, teacherId);
+
+                // 4. Send notifications to parents for Absent/Late students
+                foreach (var record in dto.Records)
+                {
+                    if (record.Status.Equals("Absent", StringComparison.OrdinalIgnoreCase) || 
+                        record.Status.Equals("Late", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var student = await _context.Students
+                            .Include(s => s.Parent)
+                            .FirstOrDefaultAsync(s => s.Id == record.StudentId);
+
+                        if (student?.Parent?.ApplicationUser?.Id != null)
+                        {
+                            var title = record.Status.Equals("Absent", StringComparison.OrdinalIgnoreCase) ? "Absence Alert" : "Late Arrival";
+                            var body = $"{student.Name} was marked {record.Status} today ({dto.Date:MMM dd}).";
+                            
+                            _ = _notificationService.SendAsync(
+                                recipientUserId: student.Parent.ApplicationUser.Id,
+                                title: title,
+                                body: body,
+                                type: "Attendance",
+                                referenceId: student.Id);
+                        }
+                    }
+                }
                 
                 return Ok(new { message = "Attendance saved successfully.", updatedCount = count });
             }

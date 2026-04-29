@@ -41,6 +41,15 @@ namespace Arak.DAL.Database
             // Composite index for fast conversation queries.
             modelBuilder.Entity<Message>()
                 .HasIndex(m => new { m.SenderId, m.ReceiverId, m.SentAt });
+
+            // Fast inbox queries: all unread notifications for a user, newest first.
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+
+            // Unique constraint: each FCM token can only be registered once.
+            modelBuilder.Entity<UserDevice>()
+                .HasIndex(d => d.FcmToken)
+                .IsUnique();
         }
 
         // ── Identity ──────────────────────────────────────────────────────────
@@ -74,7 +83,11 @@ namespace Arak.DAL.Database
         public DbSet<ArakEvent> Events { get; set; }
         public DbSet<Fee> Fees { get; set; }
         public DbSet<Evaluation> Evaluations { get; set; }
-		public DbSet<Message> Messages { get; set; }
-		public DbSet<TaskSubmission> TaskSubmissions { get; set; }
-	}
+        public DbSet<Message> Messages { get; set; }
+        public DbSet<TaskSubmission> TaskSubmissions { get; set; }
+
+        // ── Notifications ─────────────────────────────────────────────────────
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<UserDevice> UserDevices { get; set; }
+    }
 }

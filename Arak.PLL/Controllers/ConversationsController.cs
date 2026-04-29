@@ -13,10 +13,12 @@ namespace Arak.PLL.Controllers
     public class ConversationsController : ControllerBase
     {
         private readonly IMessageService _messageService;
+        private readonly INotificationService _notificationService;
 
-        public ConversationsController(IMessageService messageService)
+        public ConversationsController(IMessageService messageService, INotificationService notificationService)
         {
             _messageService = messageService;
+            _notificationService = notificationService;
         }
 
         private string GetCurrentUserId()
@@ -71,6 +73,15 @@ namespace Arak.PLL.Controllers
             try
             {
                 var message = await _messageService.SendMessageAsync(dto, senderId, userId);
+
+                // Fire & forget notification (we don't want push errors to fail the API call)
+                _ = _notificationService.SendAsync(
+                    recipientUserId: userId,
+                    title: $"New message from {message.SenderName}",
+                    body: message.Content.Length > 80 ? message.Content[..80] + "…" : message.Content,
+                    type: "Message",
+                    referenceId: message.Id);
+
                 return CreatedAtAction(
                     nameof(GetConversationMessages),
                     new { userId },

@@ -1,5 +1,6 @@
 using Arak.BLL.DTOs;
 using Arak.DAL.Entities;
+using Arak.DAL.Repository.Abstraction;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,15 +20,18 @@ namespace Arak.PLL.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole>   _roleManager;
         private readonly Arak.DAL.Database.AppDbContext _db;
+        private readonly IUserDeviceRepository _deviceRepository;
 
         public UsersController(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole>   roleManager,
-            Arak.DAL.Database.AppDbContext db)
+            Arak.DAL.Database.AppDbContext db,
+            IUserDeviceRepository deviceRepository)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _db          = db;
+            _deviceRepository = deviceRepository;
         }
 
         // GET /api/users?email=X&role=Y
@@ -226,5 +230,41 @@ namespace Arak.PLL.Controllers
             Role        = role,
             IsActive    = !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd <= DateTimeOffset.UtcNow,
         };
+
+        // ── FCM Token Management ──────────────────────────────────────────────
+
+        public class FcmTokenRequest
+        {
+            public string FcmToken { get; set; } = string.Empty;
+            public string? DeviceName { get; set; }
+        }
+
+        [HttpPut("fcm-token")]
+        [Authorize]
+        public async Task<IActionResult> RegisterFcmToken([FromBody] FcmTokenRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FcmToken))
+                return BadRequest("Token is required");
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            await _deviceRepository.UpsertAsync(userId, request.FcmToken, request.DeviceName);
+            return Ok(new { message = "Device token registered successfully." });
+        }
+
+        [HttpDelete("fcm-token")]
+        [Authorize]
+        public async Task<IActionResult> UnregisterFcmToken([FromBody] FcmTokenRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FcmToken))
+                return BadRequest("Token is required");
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            await _deviceRepository.DeleteByTokenAsync(userId, request.FcmToken);
+            return Ok(new { message = "Device token removed successfully." });
+        }
     }
 }

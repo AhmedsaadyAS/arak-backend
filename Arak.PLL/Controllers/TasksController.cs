@@ -20,11 +20,13 @@ namespace Arak.PLL.Controllers
     public class TasksController : ControllerBase
     {
         private readonly ITaskService _taskService;
+        private readonly INotificationService _notificationService;
         private readonly AppDbContext _db;
 
-        public TasksController(ITaskService taskService, AppDbContext db)
+        public TasksController(ITaskService taskService, INotificationService notificationService, AppDbContext db)
         {
             _taskService = taskService;
+            _notificationService = notificationService;
             _db = db;
         }
 
@@ -97,6 +99,29 @@ namespace Arak.PLL.Controllers
             }
 
             await _taskService.CreateAsync(entity);
+
+            // ── Fanout NewTask notifications to parents ──
+            if (entity.ClassId.HasValue)
+            {
+                var parentUserIds = await _db.Students
+                    .Include(s => s.Parent)
+                    .ThenInclude(p => p.ApplicationUser)
+                    .Where(s => s.ClassId == entity.ClassId.Value && s.Parent != null && s.Parent.ApplicationUser != null)
+                    .Select(s => s.Parent!.ApplicationUser!.Id)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var pId in parentUserIds)
+                {
+                    _ = _notificationService.SendAsync(
+                        recipientUserId: pId,
+                        title: "New Assignment",
+                        body: $"A new assignment '{entity.Title}' has been posted.",
+                        type: "NewTask",
+                        referenceId: entity.Id);
+                }
+            }
+
             return CreatedAtRoute("GetTaskById", new { id = entity.Id }, entity);
         }
 

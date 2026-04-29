@@ -4,12 +4,17 @@ using Arak.DAL.Database;
 using Arak.DAL.Entities;
 using Arak.DAL.Repository.Abstraction;
 using Arak.DAL.Repository.Implementation;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
+using System.IO;
+using Arak.PLL.Hubs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Threading.Tasks;
 
 namespace Arak.PLL
 {
@@ -18,6 +23,18 @@ namespace Arak.PLL
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // ── 0. SignalR & Firebase ─────────────────────────────────────────
+            builder.Services.AddSignalR();
+            
+            var firebaseKeyPath = Path.Combine(builder.Environment.ContentRootPath, "firebase-adminsdk.json");
+            if (File.Exists(firebaseKeyPath))
+            {
+                FirebaseApp.Create(new AppOptions
+                {
+                    Credential = GoogleCredential.FromFile(firebaseKeyPath)
+                });
+            }
 
             // ── 1. Controllers (with JSON cycle protection) ───────────────────
             builder.Services.AddControllers()
@@ -92,6 +109,21 @@ namespace Arak.PLL
                         IssuerSigningKey         = new SymmetricSecurityKey(
                                                        Encoding.UTF8.GetBytes(jwtKey))
                     };
+
+                    // Support SignalR JWT auth via query string parameter
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                            {
+                                context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
 
             builder.Services.AddAuthorization();
@@ -133,9 +165,11 @@ namespace Arak.PLL
             builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             builder.Services.AddScoped<IStudentRepository, StudentRepository>();
             builder.Services.AddScoped<ITimetableRepository, TimetableRepository>();
-			builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+            builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+            builder.Services.AddScoped<IUserDeviceRepository, UserDeviceRepository>();
+            builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
-			// ── 8. Services ───────────────────────────────────────────────────
+            // ── 8. Services ───────────────────────────────────────────────────
 			builder.Services.AddScoped<IStudentService, StudentService>();
             builder.Services.AddScoped<ITimetableService, TimetableService>();
             builder.Services.AddScoped<IAuthService, AuthService>();   // ← NEW
@@ -148,9 +182,12 @@ namespace Arak.PLL
             builder.Services.AddScoped<ITaskService, TaskService>();
             builder.Services.AddScoped<IEvaluationService, EvaluationService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
-			builder.Services.AddScoped<IMessageService, MessageService>();
+            builder.Services.AddScoped<IMessageService, MessageService>();
+            builder.Services.AddScoped<IFcmService, FcmService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<INotificationHubDispatcher, NotificationHubDispatcher>();
 
-			// ══════════════════════════════════════════════════════════════════
+            // ══════════════════════════════════════════════════════════════════
 			var app = builder.Build();
             // ══════════════════════════════════════════════════════════════════
 
@@ -197,6 +234,7 @@ namespace Arak.PLL
             });
 
             app.MapControllers();
+            app.MapHub<NotificationHub>("/hubs/notifications"); // Map SignalR Hub
             app.Run();
         }
     }

@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+
 namespace Arak.DAL.Entities
 {
     /// <summary>
@@ -24,5 +27,15 @@ namespace Arak.DAL.Entities
         public string? Description { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Optional: scopes the event to a specific class.
+        /// When set, only parents of students in this class receive a notification.
+        /// </summary>
+        [ForeignKey("Class")]
+        public int? ClassId { get; set; }
+
+        [JsonIgnore]
+        public Class? Class { get; set; }
     }
 }
