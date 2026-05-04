@@ -14,7 +14,7 @@ namespace Arak.PLL.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Users Admin")]
+    [Authorize] // Base authentication for all endpoints
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -36,6 +36,7 @@ namespace Arak.PLL.Controllers
 
         // GET /api/users?email=X&role=Y
         [HttpGet]
+        [Authorize(Roles = "Super Admin,Admin,Users Admin,Teacher,Parent")]
         public async Task<IActionResult> GetAllAsync(
             [FromQuery] string? email = null,
             [FromQuery] string? role = null)
@@ -83,6 +84,7 @@ namespace Arak.PLL.Controllers
 
         // GET /api/users/{id}
         [HttpGet("{id}")]
+        [Authorize(Roles = "Super Admin,Admin,Users Admin")]
         public async Task<IActionResult> GetByIdAsync(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -95,6 +97,7 @@ namespace Arak.PLL.Controllers
 
         // POST /api/users  — create a new user account
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Users Admin")]
         public async Task<IActionResult> CreateAsync([FromBody] CreateUserDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -122,6 +125,7 @@ namespace Arak.PLL.Controllers
 
         // PATCH /api/users/{id}  — update profile (name, phone, address, role)
         [HttpPatch("{id}")]
+        [Authorize(Roles = "Super Admin,Admin,Users Admin")]
         public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateUserDto dto)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -158,6 +162,7 @@ namespace Arak.PLL.Controllers
 
         // DELETE /api/users/{id}
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Super Admin,Admin,Users Admin")]
         public async Task<IActionResult> DeleteAsync(string id)
         {
             try
