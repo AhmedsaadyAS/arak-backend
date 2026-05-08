@@ -77,7 +77,8 @@ namespace Arak.DAL.Database
                         new Subject { Name = "Mathematics" },
                         new Subject { Name = "Physics"     },
                         new Subject { Name = "English"     },
-                        new Subject { Name = "Arabic"      }
+                        new Subject { Name = "Arabic"      },
+                        new Subject { Name = "Science"     }
                     );
                     await dbContext.SaveChangesAsync();
                 }
@@ -138,6 +139,7 @@ namespace Arak.DAL.Database
                     var physSub = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Physics");
                     var engSub  = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "English");
                     var arabSub = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Arabic");
+                    var sciSub  = await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name == "Science");
 
                     var grade4a = await dbContext.Classes.FirstOrDefaultAsync(c => c.Name == "Grade 4-A");
                     var grade7a = await dbContext.Classes.FirstOrDefaultAsync(c => c.Name == "Grade 7-A");
@@ -152,6 +154,7 @@ namespace Arak.DAL.Database
                         new TimeTable { ClassId = grade4a?.Id, SubjectId = mathSub?.Id, TeacherId = t1?.TeacherId, DayOfWeek = DayOfWeek.Sunday,  StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 101" },
                         new TimeTable { ClassId = grade4a?.Id, SubjectId = engSub?.Id,  TeacherId = t2?.TeacherId, DayOfWeek = DayOfWeek.Sunday,  StartTime = TimeSpan.FromHours(10), EndTime = TimeSpan.FromHours(11.5), Location = "Room 102" },
                         new TimeTable { ClassId = grade4a?.Id, SubjectId = arabSub?.Id, TeacherId = t1?.TeacherId, DayOfWeek = DayOfWeek.Monday,  StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 101" },
+                        new TimeTable { ClassId = grade4a?.Id, SubjectId = sciSub?.Id,  TeacherId = t2?.TeacherId, DayOfWeek = DayOfWeek.Monday,  StartTime = TimeSpan.FromHours(10), EndTime = TimeSpan.FromHours(11.5), Location = "Room 102" },
                         new TimeTable { ClassId = grade7a?.Id, SubjectId = mathSub?.Id, TeacherId = t1?.TeacherId, DayOfWeek = DayOfWeek.Sunday,  StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 201" },
                         new TimeTable { ClassId = grade7a?.Id, SubjectId = physSub?.Id, TeacherId = t2?.TeacherId, DayOfWeek = DayOfWeek.Monday,  StartTime = TimeSpan.FromHours(10), EndTime = TimeSpan.FromHours(11.5), Location = "Lab 1"    },
                         new TimeTable { ClassId = grade7a?.Id, SubjectId = engSub?.Id,  TeacherId = t2?.TeacherId, DayOfWeek = DayOfWeek.Tuesday, StartTime = TimeSpan.FromHours(8),  EndTime = TimeSpan.FromHours(9.5),  Location = "Room 202" }
