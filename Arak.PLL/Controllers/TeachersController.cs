@@ -320,6 +320,7 @@ namespace ARAK.PLL.Controllers
             return new TeacherDto
             {
                 Id             = t.TeacherId,
+                UserId         = user?.Id ?? string.Empty,
                 // Deterministic format based on the actual TeacherId (not array index)
                 TeacherId      = $"#T{100000 + t.TeacherId}",
                 Name           = user?.Name        ?? string.Empty,

@@ -7,6 +7,7 @@ namespace Arak.BLL.DTOs
     public class TeacherDto
     {
         public int     Id             { get; init; }         // TeacherId
+        public string  UserId         { get; init; } = string.Empty; // ASP.NET Identity UserId
         public string  TeacherId      { get; init; } = string.Empty; // Display code e.g. "TCH-001"
         public string  Name           { get; init; } = string.Empty;
         public string  Email          { get; init; } = string.Empty;

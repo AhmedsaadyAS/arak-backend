@@ -254,6 +254,7 @@ namespace ARAK.PLL.Controllers
             return new ParentDto
             {
                 Id           = p.ParentId,
+                UserId       = user?.Id ?? string.Empty,
                 Name         = user?.Name        ?? string.Empty,
                 Email        = user?.Email       ?? string.Empty,
                 PhoneNumber  = user?.PhoneNumber ?? null,
