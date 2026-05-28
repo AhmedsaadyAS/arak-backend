@@ -187,7 +187,7 @@ namespace ARAK.PLL.Controllers
         private static StudentDto MapToDto(Student s) => new()
         {
             Id = s.Id,
-            StudentId = s.StudentCode,          // rename for frontend contract
+            StudentId = s.StudentCode,
             Name = s.Name,
             UserName = s.UserName,
             Age = s.Age,
@@ -202,11 +202,9 @@ namespace ARAK.PLL.Controllers
             Image = s.Image,
             ClassId = s.ClassId,
             ParentId = s.ParentId,
-            // Navigation properties are not eagerly loaded from generic repo —
-            // ClassName / ParentName will be null unless we load them. 
-            // A future enhancement can use Include() on dedicated queries.
-            ClassName = null,
-            ParentName = null,
+            ClassName = s.Class?.Name,
+            ParentName = s.Parent?.ApplicationUser?.Name,
+            ParentUserId = s.Parent?.ApplicationUser?.Id,
         };
     }
 }

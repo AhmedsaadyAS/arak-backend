@@ -136,9 +136,17 @@ namespace Arak.PLL.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
+            var task = await _db.Assignments.FindAsync(id);
+            if (task == null) return NotFound();
+
+            // Cascade delete related student completions first
+            var submissions = _db.TaskSubmissions.Where(ts => ts.TaskId == id);
+            _db.TaskSubmissions.RemoveRange(submissions);
+            await _db.SaveChangesAsync();
+
             var success = await _taskService.DeleteAsync(id);
             if (!success) return NotFound();
-            return Ok(new { message = "Task deleted." });
+            return Ok(new { message = "Task deleted successfully with related student completions." });
         }
 
         // ── GET /api/tasks/{taskId}/status ────────────────────────────────────

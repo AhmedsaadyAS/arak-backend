@@ -14,33 +14,63 @@ namespace Arak.DAL.Repository.Implementation
 	public class StudentRepository : GenericRepository<Student>, IStudentRepository
 	{
 		public StudentRepository(AppDbContext context) : base(context) { }
+
+		public override async Task<Student?> GetByIdAsync(int id)
+		{
+			return await _context.Students
+				.Include(s => s.Parent)
+					.ThenInclude(p => p.ApplicationUser)
+				.Include(s => s.Class)
+				.FirstOrDefaultAsync(s => s.Id == id);
+		}
 		public async Task<ICollection<Student>> GetByStatusAsync(string status)
 		{
-			var students = await _context.Students.Where(x => x.Status == status).ToListAsync();
+			var students = await _context.Students
+				.Include(s => s.Parent)
+					.ThenInclude(p => p.ApplicationUser)
+				.Include(s => s.Class)
+				.Where(x => x.Status == status).ToListAsync();
 			return students;
 		}
 
 		public async Task<ICollection<Student>> GetByNameAsync(string name)
 		{
-            var students = await _context.Students.Where(x => x.Name == name).ToListAsync();
+            var students = await _context.Students
+                .Include(s => s.Parent)
+                    .ThenInclude(p => p.ApplicationUser)
+                .Include(s => s.Class)
+                .Where(x => x.Name.Contains(name))
+                .ToListAsync();
 			return students;	
         }
 
 		public async Task<ICollection<Student>> GetByEmailAsync(string email)
 		{
-			var students = await _context.Students.Where(x => x.Email == email).ToListAsync();
+			var students = await _context.Students
+				.Include(s => s.Parent)
+					.ThenInclude(p => p.ApplicationUser)
+				.Include(s => s.Class)
+				.Where(x => x.Email == email).ToListAsync();
 			return students;
 		}
 
 		public async Task<ICollection<Student>> GetStudentByClassId(int classId)
 		{
-			var students = await _context.Students.Where(x=>x.ClassId == classId).ToListAsync();
+			var students = await _context.Students
+				.Include(s => s.Parent)
+					.ThenInclude(p => p.ApplicationUser)
+				.Include(s => s.Class)
+				.Where(x=>x.ClassId == classId).ToListAsync();
 			return students;
 		}
 
         public async Task<ICollection<Student>> GetStudentByParentId(int parentId)
         {
-            var students = await _context.Students.Where(x => x.ParentId == parentId).ToListAsync();
+            var students = await _context.Students
+				.Include(s => s.Parent)
+					.ThenInclude(p => p.ApplicationUser)
+				.Include(s => s.Class)
+				.Where(x => x.ParentId == parentId).ToListAsync();
             return students;
         }
 
@@ -52,7 +82,11 @@ namespace Arak.DAL.Repository.Implementation
             string? status,
             int?    classId)
         {
-            var query = _context.Students.AsQueryable();
+            var query = _context.Students
+                .Include(s => s.Parent)
+                    .ThenInclude(p => p.ApplicationUser)
+                .Include(s => s.Class)
+                .AsQueryable();
 
             // --- Filtering ---
             if (!string.IsNullOrWhiteSpace(search))

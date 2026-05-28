@@ -99,5 +99,13 @@ namespace Arak.DAL.Repository.Implementation
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(m => m.ReadAt, now));
         }
+
+        public async Task<string?> GetUserRoleAsync(string userId)
+        {
+            return await (from ur in _context.UserRoles
+                          join r in _context.Roles on ur.RoleId equals r.Id
+                          where ur.UserId == userId
+                          select r.Name).FirstOrDefaultAsync();
+        }
     }
 }

@@ -27,6 +27,7 @@ namespace Arak.BLL.DTOs
         public string? ClassName { get; init; }
         public int? ParentId { get; init; }
         public string? ParentName { get; init; }
+        public string? ParentUserId { get; init; }
     }
 
     /// <summary>

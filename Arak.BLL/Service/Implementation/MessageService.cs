@@ -49,25 +49,32 @@ namespace Arak.BLL.Service.Implementation
         public async Task<IEnumerable<DtoConversation>> GetUserConversationsAsync(string currentUserId)
         {
             var results = await _messageRepository.GetUserConversationsAsync(currentUserId);
+            var conversations = new List<DtoConversation>();
 
-            return results.Select(r =>
+            foreach (var r in results)
             {
                 var isCurrentSender = r.LatestMessage.SenderId == currentUserId;
                 var otherUser = isCurrentSender ? r.LatestMessage.Receiver : r.LatestMessage.Sender;
+                var otherUserId = isCurrentSender ? r.LatestMessage.ReceiverId : r.LatestMessage.SenderId;
 
-                return new DtoConversation
+                var role = await _messageRepository.GetUserRoleAsync(otherUserId) ?? "Unknown";
+
+                conversations.Add(new DtoConversation
                 {
-                    ParticipantId = isCurrentSender ? r.LatestMessage.ReceiverId : r.LatestMessage.SenderId,
+                    ParticipantId = otherUserId,
                     LastMessage = r.LatestMessage.Content,
                     LastMessageTime = r.LatestMessage.SentAt,
                     UnreadCount = r.UnreadCount,
                     Participant = new DtoConversationParticipant
                     {
                         Name = otherUser?.Name ?? otherUser?.UserName ?? "Unknown",
-                        Avatar = ""
+                        Avatar = "",
+                        Role = role
                     }
-                };
-            }).ToList();
+                });
+            }
+
+            return conversations;
         }
 
         public async Task<bool> MarkAsReadAsync(int messageId, string currentUserId)

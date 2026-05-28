@@ -12,5 +12,6 @@ namespace Arak.DAL.Repository.Abstraction
         Task<bool> UserExistsAsync(string userId);
         Task<Message?> GetByIdWithUsersAsync(int id);
         Task<int> MarkConversationAsReadAsync(string currentUserId, string otherUserId);
+        Task<string?> GetUserRoleAsync(string userId);
     }
 }
