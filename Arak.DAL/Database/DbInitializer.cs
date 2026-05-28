@@ -28,17 +28,44 @@ namespace Arak.DAL.Database
                 }
 
                 // 2. Admin Users
-                const string adminEmail = "admin@arak.com";
-                if (await userManager.FindByEmailAsync(adminEmail) == null)
+                const string superAdminEmail = "superadmin@arak.com";
+                var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
+                if (superAdminUser == null)
                 {
-                    var adminUser = new ApplicationUser
+                    superAdminUser = new ApplicationUser
+                    {
+                        UserName = superAdminEmail, Email = superAdminEmail, EmailConfirmed = true,
+                        Name = "Super Admin User", Address = "Arak School HQ"
+                    };
+                    var superAdminPassword = Environment.GetEnvironmentVariable("ARAK_SUPERADMIN_PASSWORD") ?? "SuperAdmin@123";
+                    var createResult = await userManager.CreateAsync(superAdminUser, superAdminPassword);
+                    if (createResult.Succeeded) await userManager.AddToRoleAsync(superAdminUser, "Super Admin");
+                }
+
+                const string adminEmail = "admin@arak.com";
+                var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                if (adminUser == null)
+                {
+                    adminUser = new ApplicationUser
                     {
                         UserName = adminEmail, Email = adminEmail, EmailConfirmed = true,
                         Name = "Admin User", Address = "Arak School HQ"
                     };
                     var adminPassword = Environment.GetEnvironmentVariable("ARAK_ADMIN_PASSWORD") ?? "Admin@123";
                     var createResult = await userManager.CreateAsync(adminUser, adminPassword);
-                    if (createResult.Succeeded) await userManager.AddToRoleAsync(adminUser, "Super Admin");
+                    if (createResult.Succeeded) await userManager.AddToRoleAsync(adminUser, "Admin");
+                }
+                else
+                {
+                    // Ensure admin@arak.com has Admin role and NOT Super Admin role
+                    if (await userManager.IsInRoleAsync(adminUser, "Super Admin"))
+                    {
+                        await userManager.RemoveFromRoleAsync(adminUser, "Super Admin");
+                    }
+                    if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+                    {
+                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                    }
                 }
 
                 const string academicEmail = "academic@arak.com";

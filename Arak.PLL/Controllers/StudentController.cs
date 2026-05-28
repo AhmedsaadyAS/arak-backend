@@ -9,7 +9,7 @@ namespace ARAK.PLL.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
+    [Authorize]
     public class StudentsController : ControllerBase
     {
         private readonly IStudentService _studentService;
@@ -28,6 +28,7 @@ namespace ARAK.PLL.Controllers
         /// Returns: { data: StudentDto[], total: int, items: int, page: int, pageSize: int }
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> GetAllStudents(
             [FromQuery] int _page = 1,
             [FromQuery] int _per_page = 20,
@@ -52,6 +53,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpGet("{id:int}", Name = "GetStudentById")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin,Teacher,Parent")]
         public async Task<IActionResult> GetStudentByIdAsync(int id)
         {
             var student = await _studentService.GetStudentsByIdAsync(id);
@@ -62,6 +64,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpGet("status/{status}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> GetStudentsByStatus(string status)
         {
             var students = await _studentService.GetByStatusAsync(status);
@@ -69,6 +72,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpGet("SearchStudentsByName/{name}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin,Teacher")]
         public async Task<IActionResult> GetByNameAsync(string name)
         {
             var students = await _studentService.GetByNameAsync(name);
@@ -76,6 +80,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpGet("SearchStudentsByClassId/{classId}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin,Teacher")]
         public async Task<IActionResult> GetStudentsByClassId(int classId)
         {
             var students = await _studentService.GetStudentByClassId(classId);
@@ -83,6 +88,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpGet("SearchStudentsByParentId/{parentId}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin,Parent")]
         public async Task<IActionResult> GetStudentsByParentId(int parentId)
         {
             var students = await _studentService.GetStudentByParentId(parentId);
@@ -90,6 +96,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> CreateStudent([FromBody] CreateStudentDto dto)
         {
             var student = new Student
@@ -116,6 +123,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdateStudentDto dto)
         {
             if (!ModelState.IsValid)
@@ -147,6 +155,7 @@ namespace ARAK.PLL.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Super Admin,Admin,Academic Admin,Users Admin")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
             var result = await _studentService.DeleteAsync(id);
