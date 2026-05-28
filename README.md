@@ -62,9 +62,10 @@ dotnet run --project Arak.PLL
 
 | Role | Email | Password | Access Level |
 |------|-------|----------|--------------|
-| **Super Admin** | `admin@arak.com` | `Admin@123` | Full system access |
-| **Academic Admin** | `academic@arak.com` | `Academic@123` | Grades, schedules, tasks |
-| **Teacher** | `teacher1@arak.com` | `Teacher@123` | Own classes only |
+| **Super Admin** | `superadmin@arak.com` | `SuperAdmin@123` | Full system access & user management |
+| **Admin** | `admin@arak.com` | `Admin@123` | School administrator (restricted users) |
+| **Academic Admin** | `academic@arak.com` | `Academic@123` | Grades, schedules, tasks, events |
+| **Teacher** | `teacher@arak.com` | `Teacher@123` | Assigned classes only |
 | **Parent** | `parent1@arak.com` | `Parent@123` | View children's data |
 
 > ⚠️ **Change these passwords in production!** Use environment variables: `ARAK_DEFAULT_PASSWORD`
@@ -260,9 +261,10 @@ After running migrations, these accounts are automatically created:
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Super Admin** | `admin@arak.com` | `Admin@123` |
+| **Super Admin** | `superadmin@arak.com` | `SuperAdmin@123` |
+| **Admin** | `admin@arak.com` | `Admin@123` |
 | **Academic Admin** | `academic@arak.com` | `Academic@123` |
-| **Teacher** | `teacher1@arak.com` | `Teacher@123` |
+| **Teacher** | `teacher@arak.com` | `Teacher@123` |
 | **Parent** | `parent1@arak.com` | `Parent@123` |
 
 > ⚠️ **Change these in production!** Use environment variables: `ARAK_DEFAULT_PASSWORD`, `ARAK_ADMIN_PASSWORD`.
