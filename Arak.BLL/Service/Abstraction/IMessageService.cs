@@ -11,5 +11,6 @@ namespace Arak.BLL.Service.Abstraction
         Task<IEnumerable<DtoConversation>> GetUserConversationsAsync(string currentUserId);
         Task<bool> MarkAsReadAsync(int messageId, string currentUserId);
         Task<int> MarkConversationAsReadAsync(string currentUserId, string otherUserId);
+        Task<int> GetReceivedMessagesCountAsync(string currentUserId);
     }
 }

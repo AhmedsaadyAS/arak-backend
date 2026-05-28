@@ -13,5 +13,6 @@ namespace Arak.DAL.Repository.Abstraction
         Task<Message?> GetByIdWithUsersAsync(int id);
         Task<int> MarkConversationAsReadAsync(string currentUserId, string otherUserId);
         Task<string?> GetUserRoleAsync(string userId);
+        Task<int> GetReceivedMessagesCountAsync(string currentUserId);
     }
 }

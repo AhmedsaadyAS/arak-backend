@@ -189,6 +189,48 @@ namespace Arak.DAL.Database
                     await dbContext.SaveChangesAsync();
                 }
 
+                // 7. Simulated Conversation Messages
+                if (true) // Resets and seeds a clean simulated history for developers
+                {
+                    // Clear out old messages first to avoid duplicates or skipping
+                    var existing = await dbContext.Messages.ToListAsync();
+                    if (existing.Any())
+                    {
+                        dbContext.Messages.RemoveRange(existing);
+                        await dbContext.SaveChangesAsync();
+                    }
+
+                    var admin = await userManager.FindByEmailAsync("admin@arak.com");
+                    var superadmin = await userManager.FindByEmailAsync("superadmin@arak.com");
+                    var t1User = await userManager.FindByEmailAsync("teacher1@arak.com");
+                    var t2User = await userManager.FindByEmailAsync("teacher2@arak.com");
+                    var p1User = await userManager.FindByEmailAsync("parent1@arak.com");
+                    var p2User = await userManager.FindByEmailAsync("parent2@arak.com");
+
+                    if (admin != null && superadmin != null && t1User != null && t2User != null && p1User != null && p2User != null)
+                    {
+                        var now = DateTime.UtcNow;
+                        dbContext.Messages.AddRange(
+                            // Incoming messages to Admin (counted as Received Messages on Admin Dashboard)
+                            new Message { SenderId = t1User.Id, ReceiverId = admin.Id, Content = "Hello Admin, I have successfully updated the math exam grades for Grade 4-A.", SentAt = now.AddHours(-5) },
+                            new Message { SenderId = t2User.Id, ReceiverId = admin.Id, Content = "Hi, could we double check the timetable classroom assignments for next Monday?", SentAt = now.AddHours(-4) },
+                            new Message { SenderId = p1User.Id, ReceiverId = admin.Id, Content = "Hello, is there any updates on Alice's school bus registration?", SentAt = now.AddHours(-3) },
+                            new Message { SenderId = p2User.Id, ReceiverId = admin.Id, Content = "Good afternoon, I wanted to submit Charlie's medical report for physical education exemption.", SentAt = now.AddHours(-2) },
+                            new Message { SenderId = t1User.Id, ReceiverId = admin.Id, Content = "Admin, please approve the school trip request for Grade 4-A by tomorrow.", SentAt = now.AddHours(-1) },
+
+                            // Incoming messages to Super Admin (counted as Received Messages on Super Admin Dashboard)
+                            new Message { SenderId = t1User.Id, ReceiverId = superadmin.Id, Content = "Dear Super Admin, I wanted to report that the Grade 4-A classroom projector requires maintenance.", SentAt = now.AddHours(-3) },
+                            new Message { SenderId = p1User.Id, ReceiverId = superadmin.Id, Content = "Hello, could we schedule a brief meeting regarding the upcoming parent-teacher council nominations?", SentAt = now.AddHours(-2) },
+                            new Message { SenderId = t2User.Id, ReceiverId = superadmin.Id, Content = "Good afternoon, the new English curriculum materials have been distributed successfully to Grade 7.", SentAt = now.AddHours(-1) },
+
+                            // Simulated Teacher-Parent Conversations (Mobile App API alignment)
+                            new Message { SenderId = t1User.Id, ReceiverId = p1User.Id, Content = "Dear Mr. John, Alice participated actively in class today!", SentAt = now.AddDays(-1).AddHours(1) },
+                            new Message { SenderId = p1User.Id, ReceiverId = t1User.Id, Content = "Thank you Ms. Maria, she really loves your math class!", SentAt = now.AddDays(-1).AddHours(2) }
+                        );
+                        await dbContext.SaveChangesAsync();
+                    }
+                }
+
                 await transaction.CommitAsync();
             }
             catch (Exception ex)

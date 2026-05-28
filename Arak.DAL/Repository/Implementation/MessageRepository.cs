@@ -107,5 +107,10 @@ namespace Arak.DAL.Repository.Implementation
                           where ur.UserId == userId
                           select r.Name).FirstOrDefaultAsync();
         }
+
+        public async Task<int> GetReceivedMessagesCountAsync(string currentUserId)
+        {
+            return await _context.Messages.CountAsync(m => m.ReceiverId == currentUserId && m.ReadAt == null);
+        }
     }
 }

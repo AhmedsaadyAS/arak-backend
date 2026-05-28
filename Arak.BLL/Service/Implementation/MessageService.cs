@@ -96,6 +96,11 @@ namespace Arak.BLL.Service.Implementation
             return await _messageRepository.MarkConversationAsReadAsync(currentUserId, otherUserId);
         }
 
+        public async Task<int> GetReceivedMessagesCountAsync(string currentUserId)
+        {
+            return await _messageRepository.GetReceivedMessagesCountAsync(currentUserId);
+        }
+
         /// <summary>
         /// Maps a Message entity (with loaded navigation properties) to a DtoMessage.
         /// </summary>

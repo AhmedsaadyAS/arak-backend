@@ -123,5 +123,19 @@ namespace Arak.PLL.Controllers
             var count = await _messageService.MarkConversationAsReadAsync(currentUserId, userId);
             return Ok(new { success = true, markedCount = count });
         }
+
+        /// <summary>
+        /// GET api/Conversations/received-count — Get total received messages count.
+        /// </summary>
+        [HttpGet("received-count")]
+        public async Task<IActionResult> GetReceivedMessagesCount()
+        {
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized();
+
+            var count = await _messageService.GetReceivedMessagesCountAsync(currentUserId);
+            return Ok(new { count });
+        }
     }
 }
