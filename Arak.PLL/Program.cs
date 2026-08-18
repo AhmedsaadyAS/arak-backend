@@ -241,6 +241,9 @@ namespace Arak.PLL
                     statusCode: statusCode);
             });
 
+            // ── Health check (unauthenticated) ────────────────────────────────
+            app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
             app.MapControllers();
             app.MapHub<NotificationHub>("/hubs/notifications"); // Map SignalR Hub
             app.Run();
