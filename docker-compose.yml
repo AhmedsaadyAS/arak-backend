@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  # ────────────────────────────────────────────────────────────
+  # SQL Server Database
+  # ────────────────────────────────────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: arak-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+      MSSQL_PID: "Developer"
+    ports:
+      - "${SQL_SERVER_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${MSSQL_SA_PASSWORD}" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - arak-network
+
+  # ────────────────────────────────────────────────────────────
+  # Arak API Backend
+  # ────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arak-api
+    environment:
+      # SQL Server connection (SQL auth for Docker)
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=ArakDB;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
+
+      # JWT
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env}
+      Jwt__Issuer: ${JWT_ISSUER:-ArakAPI}
+      Jwt__Audience: ${JWT_AUDIENCE:-ArakDashboard}
+      Jwt__ExpirationHours: ${JWT_EXPIRATION_HOURS:-24}
+
+      # CORS
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_1:-http://localhost:5173}
+      Cors__AllowedOrigins__1: ${CORS_ORIGIN_2:-http://localhost:5174}
+      Cors__AllowedOrigins__2: ${CORS_ORIGIN_3:-http://localhost:3000}
+
+      # Seed password
+      ARAK_DEFAULT_PASSWORD: ${ARAK_DEFAULT_PASSWORD:-Admin@123}
+
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+    ports:
+      - "${API_PORT:-5000}:5000"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - arak-network
+
+volumes:
+  sqlserver-data:
+    driver: local
+
+networks:
+  arak-network:
+    driver: bridge

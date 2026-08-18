@@ -362,3 +362,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /Docs
+
+# Docker environment files (contain secrets)
+.env
+.env.*
+!.env.example

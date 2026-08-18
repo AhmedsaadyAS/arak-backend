@@ -191,7 +191,15 @@ namespace Arak.PLL
 			var app = builder.Build();
             // ══════════════════════════════════════════════════════════════════
 
-            // ── Step 4: Seed Database ─────────────────────────────────────────
+            // ── Step 4: Auto-Migrate & Seed Database ──────────────────────────
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                if (db.Database.GetPendingMigrations().Any())
+                {
+                    await db.Database.MigrateAsync();
+                }
+            }
             await Arak.DAL.Database.DbInitializer.InitializeAsync(app.Services);
 
             // ── Swagger (dev only) ────────────────────────────────────────────
